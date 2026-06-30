@@ -1,0 +1,42 @@
+# ===== Rust / Tauri =====
+/target/
+**/target/
+src-tauri/target/
+Cargo.lock
+*.pdb
+
+# ===== Node / 前端 =====
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.local
+
+# ===== 构建产物 =====
+/build/
+/out/
+*.exe
+*.msi
+*.app
+*.dmg
+
+# ===== 环境 / 密钥 =====
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# ===== IDE / 系统 =====
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== 临时 / 日志 =====
+*.log
+tmp/
+.cache/
