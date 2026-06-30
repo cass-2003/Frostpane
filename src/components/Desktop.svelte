@@ -251,6 +251,18 @@
     outline-offset: 2px;
   }
 
+  .desktop-icon:focus .icon-label,
+  .desktop-icon:focus-visible .icon-label {
+    white-space: normal;
+    word-break: break-all;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 2px;
+    padding: 1px 3px;
+  }
+
   .desktop-icon.is-dragging {
     opacity: 0.35;
     cursor: grabbing;
@@ -279,13 +291,13 @@
     max-width: 76px;
     overflow: hidden;
     text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    word-break: break-all;
+    white-space: nowrap;
     color: #fff;
     font-weight: 400;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.9);
+    text-shadow:
+      0 0 2px rgba(0, 0, 0, 0.9),
+      0 0 4px rgba(0, 0, 0, 0.7),
+      0 0 6px rgba(0, 0, 0, 0.4);
     pointer-events: none;
   }
 
