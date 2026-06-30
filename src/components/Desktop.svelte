@@ -275,9 +275,13 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    color: #ffffff;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.45);
     text-shadow:
-      0 1px 3px rgba(0, 0, 0, 0.9),
-      0 0 8px rgba(0, 0, 0, 0.6);
+      0 1px 2px rgba(0, 0, 0, 1),
+      0 0 4px rgba(0, 0, 0, 0.8);
     pointer-events: none;
   }
 
