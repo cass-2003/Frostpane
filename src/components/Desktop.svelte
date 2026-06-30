@@ -1,11 +1,12 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
 
   interface DesktopIcon {
     name: string;
     path: string;
-    icon_data: string; // base64 encoded PNG
+    icon_data: string;
+    icon_size: number;
     x: number;
     y: number;
     is_shortcut: boolean;
@@ -13,16 +14,62 @@
 
   let icons = $state<DesktopIcon[]>([]);
   let loading = $state(true);
+  let error = $state("");
 
   onMount(async () => {
     try {
       icons = await invoke<DesktopIcon[]>("get_desktop_icons");
     } catch (e) {
+      error = String(e);
       console.error("Failed to load desktop icons:", e);
     } finally {
       loading = false;
+      await tick();
+      renderAllIcons();
     }
   });
+
+  function renderAllIcons() {
+    for (const icon of icons) {
+      const canvas = document.getElementById(`icon-${css(icon.path)}`) as HTMLCanvasElement;
+      if (canvas && icon.icon_data) {
+        renderIconToCanvas(canvas, icon);
+      }
+    }
+  }
+
+  function css(path: string): string {
+    let hash = 0;
+    for (let i = 0; i < path.length; i++) {
+      hash = ((hash << 5) - hash + path.charCodeAt(i)) | 0;
+    }
+    return "i" + Math.abs(hash).toString(36);
+  }
+
+  function renderIconToCanvas(canvas: HTMLCanvasElement, icon: DesktopIcon) {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const size = icon.icon_size || 48;
+    canvas.width = size;
+    canvas.height = size;
+
+    try {
+      const raw = atob(icon.icon_data);
+      const pixels = new Uint8ClampedArray(raw.length);
+      for (let i = 0; i < raw.length; i++) {
+        pixels[i] = raw.charCodeAt(i);
+      }
+      if (pixels.length === size * size * 4) {
+        const imgData = new ImageData(pixels, size, size);
+        ctx.putImageData(imgData, 0, 0);
+      } else {
+        console.warn(`Icon ${icon.name}: expected ${size*size*4} bytes, got ${pixels.length}`);
+      }
+    } catch (e) {
+      console.error("Icon render error:", icon.name, e);
+    }
+  }
 
   async function handleDoubleClick(icon: DesktopIcon) {
     try {
@@ -35,9 +82,13 @@
 
 <div class="desktop-overlay">
   {#if loading}
-    <div class="loading-indicator">
+    <div class="status-pill">
       <span class="spinner">❄</span>
       <span>Frostpane loading...</span>
+    </div>
+  {:else if error}
+    <div class="status-pill error">
+      <span>Error: {error}</span>
     </div>
   {:else}
     {#each icons as icon (icon.path)}
@@ -45,19 +96,21 @@
         class="desktop-icon"
         style="left: {icon.x}px; top: {icon.y}px"
         ondblclick={() => handleDoubleClick(icon)}
+        title="{icon.name} — {icon.path}"
       >
-        {#if icon.icon_data}
-          <img
-            class="icon-image"
-            src="data:image/png;base64,{icon.icon_data}"
-            alt={icon.name}
-          />
-        {:else}
-          <div class="icon-placeholder">📄</div>
-        {/if}
+        <canvas
+          id="icon-{css(icon.path)}"
+          class="icon-canvas"
+          width="48"
+          height="48"
+        ></canvas>
         <span class="icon-label">{icon.name}</span>
       </button>
     {/each}
+
+    <div class="status-pill">
+      ❄ Frostpane M0 · {icons.length} icons loaded
+    </div>
   {/if}
 </div>
 
@@ -65,25 +118,30 @@
   .desktop-overlay {
     position: fixed;
     inset: 0;
-    pointer-events: none;
   }
 
-  .loading-indicator {
-    position: absolute;
-    bottom: 40px;
+  .status-pill {
+    position: fixed;
+    bottom: 16px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 20px;
+    padding: 10px 22px;
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
-    border-radius: 12px;
+    border-radius: 14px;
     backdrop-filter: blur(20px);
     color: var(--text);
-    font-size: 14px;
-    pointer-events: auto;
+    font-size: 13px;
+    white-space: nowrap;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .status-pill.error {
+    border-color: #e04060;
+    color: #ff8090;
   }
 
   .spinner {
@@ -108,13 +166,12 @@
     border: none;
     background: transparent;
     cursor: default;
-    pointer-events: auto;
     color: var(--text);
     transition: background 0.15s;
   }
 
   .desktop-icon:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.12);
   }
 
   .desktop-icon:focus-visible {
@@ -122,29 +179,23 @@
     outline-offset: 2px;
   }
 
-  .icon-image {
+  .icon-canvas {
     width: 48px;
     height: 48px;
     pointer-events: none;
   }
 
-  .icon-placeholder {
-    width: 48px;
-    height: 48px;
-    display: grid;
-    place-items: center;
-    font-size: 28px;
-  }
-
   .icon-label {
     font-size: 11px;
     text-align: center;
-    line-height: 1.2;
+    line-height: 1.25;
     max-width: 76px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+    text-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.9),
+      0 0 8px rgba(0, 0, 0, 0.6);
     pointer-events: none;
   }
 </style>
