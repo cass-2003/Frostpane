@@ -40,3 +40,14 @@ desktop.ini
 *.log
 tmp/
 .cache/
+
+# ===== 内部文档（不公开） =====
+AGENTS.md
+CLAUDE.md
+docs/PRD.md
+docs/planning/
+docs/architecture/
+docs/INDEX.md
+docs/audit/
+docs/archive/
+state/
