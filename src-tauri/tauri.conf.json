@@ -14,9 +14,10 @@
       {
         "title": "Frostpane",
         "decorations": false,
-        "transparent": true,
+        "transparent": false,
         "resizable": false,
-        "visible": false
+        "maximized": true,
+        "visible": true
       }
     ],
     "security": {

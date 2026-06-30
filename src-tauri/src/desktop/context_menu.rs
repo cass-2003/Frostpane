@@ -86,19 +86,88 @@ pub fn delete_to_recycle_bin(path: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn show_native_context_menu(
-    _app: tauri::AppHandle,
-    _path: String,
-    _screen_x: i32,
-    _screen_y: i32,
+    app: tauri::AppHandle,
+    path: String,
+    screen_x: i32,
+    screen_y: i32,
 ) -> Result<(), String> {
-    // TODO: IContextMenu native shell menu (complex COM, deferred to next iteration)
     #[cfg(windows)]
     {
-        use std::process::Command;
-        Command::new("explorer.exe")
-            .arg(format!("/select,{}", _path))
-            .spawn()
-            .map_err(|e| format!("Failed: {e}"))?;
+        use windows::core::PCWSTR;
+        use windows::Win32::System::Com::*;
+        use windows::Win32::UI::Shell::Common::ITEMIDLIST;
+        use windows::Win32::UI::Shell::*;
+        use windows::Win32::UI::WindowsAndMessaging::*;
+
+        unsafe {
+            let _ = CoInitializeEx(None, COINIT_APARTMENTTHREADED);
+
+            let hwnd = get_tauri_hwnd(&app)?;
+
+            let wide_path: Vec<u16> = path.encode_utf16().chain(std::iter::once(0)).collect();
+
+            let mut pidl_raw: *mut ITEMIDLIST = std::ptr::null_mut();
+            SHParseDisplayName(PCWSTR(wide_path.as_ptr()), None, &mut pidl_raw, 0, None)
+                .map_err(|e| format!("SHParseDisplayName: {e}"))?;
+
+            let mut child_pidl: *mut ITEMIDLIST = std::ptr::null_mut();
+            let parent_folder: IShellFolder =
+                SHBindToParent(pidl_raw, Some(&mut child_pidl))
+                    .map_err(|e| format!("SHBindToParent: {e}"))?;
+
+            let child_const: *const ITEMIDLIST = child_pidl;
+
+            let ctx_menu: IContextMenu = parent_folder
+                .GetUIObjectOf(hwnd, &[child_const], None)
+                .map_err(|e| format!("GetUIObjectOf: {e}"))?;
+
+            CoTaskMemFree(Some(pidl_raw as *const _ as _));
+
+            let hmenu = CreatePopupMenu().map_err(|e| format!("CreatePopupMenu: {e}"))?;
+
+            let hr = ctx_menu.QueryContextMenu(hmenu, 0, 1, 30000, CMF_NORMAL);
+            if hr.is_err() {
+                let _ = DestroyMenu(hmenu);
+                return Err(format!("QueryContextMenu failed: {hr:?}"));
+            }
+
+            let cmd = TrackPopupMenu(
+                hmenu,
+                TPM_RETURNCMD | TPM_LEFTBUTTON | TPM_RIGHTBUTTON,
+                screen_x,
+                screen_y,
+                None,
+                hwnd,
+                None,
+            );
+
+            if cmd.as_bool() {
+                let cmd_id = cmd.0 as u32;
+                if cmd_id >= 1 {
+                    let info = CMINVOKECOMMANDINFO {
+                        cbSize: std::mem::size_of::<CMINVOKECOMMANDINFO>() as u32,
+                        hwnd,
+                        lpVerb: windows::core::PCSTR((cmd_id - 1) as *const u8),
+                        nShow: SW_SHOWNORMAL.0,
+                        ..Default::default()
+                    };
+                    let _ = ctx_menu.InvokeCommand(&info);
+                }
+            }
+
+            let _ = DestroyMenu(hmenu);
+        }
     }
     Ok(())
+}
+
+#[cfg(windows)]
+unsafe fn get_tauri_hwnd(
+    app: &tauri::AppHandle,
+) -> Result<windows::Win32::Foundation::HWND, String> {
+    use tauri::Manager;
+
+    let window = app.get_webview_window("main").ok_or("No main window")?;
+    let hwnd_raw = window.hwnd().map_err(|e| format!("hwnd: {e}"))?;
+    Ok(windows::Win32::Foundation::HWND(hwnd_raw.0))
 }

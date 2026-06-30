@@ -94,20 +94,12 @@ pub fn run() {
                 )?;
             }
 
-            // Embed window in desktop (WorkerW technique)
-            let window = app
+            // M0: run as maximized window (desktop-level embedding deferred)
+            // overlay::embed_in_desktop() has WebView2 transparency issues as Progman child
+            // TODO: investigate WS_EX_TOOLWINDOW + always-on-bottom for desktop-like behavior
+            let _window = app
                 .get_webview_window("main")
                 .expect("main window not found");
-
-            #[cfg(windows)]
-            {
-                let hwnd = window.hwnd().expect("failed to get HWND");
-                overlay::hide_desktop_icons();
-                overlay::embed_in_desktop(hwnd.0 as isize);
-            }
-
-            // Ensure icons are restored on exit
-            let _ = window;
 
             Ok(())
         })
