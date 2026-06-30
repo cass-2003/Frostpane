@@ -1,6 +1,10 @@
 mod desktop;
 
+use desktop::context_menu;
 use desktop::icons::{self, DesktopIcon};
+use desktop::layout;
+use desktop::overlay;
+use tauri::Manager;
 
 #[tauri::command]
 fn get_desktop_icons() -> Vec<DesktopIcon> {
@@ -89,13 +93,40 @@ pub fn run() {
                         .build(),
                 )?;
             }
+
+            // Embed window in desktop (WorkerW technique)
+            let window = app
+                .get_webview_window("main")
+                .expect("main window not found");
+
+            #[cfg(windows)]
+            {
+                let hwnd = window.hwnd().expect("failed to get HWND");
+                overlay::hide_desktop_icons();
+                overlay::embed_in_desktop(hwnd.0 as isize);
+            }
+
+            // Ensure icons are restored on exit
+            let _ = window;
+
             Ok(())
+        })
+        .on_window_event(|_window, event| {
+            if let tauri::WindowEvent::Destroyed = event {
+                overlay::show_desktop_icons();
+            }
         })
         .invoke_handler(tauri::generate_handler![
             get_desktop_icons,
             open_item,
             open_item_admin,
             open_file_location,
+            context_menu::get_quick_menu_items,
+            context_menu::copy_path_to_clipboard,
+            context_menu::delete_to_recycle_bin,
+            context_menu::show_native_context_menu,
+            layout::save_icon_positions,
+            layout::load_icon_positions,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

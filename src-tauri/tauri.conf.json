@@ -13,13 +13,10 @@
     "windows": [
       {
         "title": "Frostpane",
-        "decorations": true,
-        "transparent": false,
-        "width": 1200,
-        "height": 800,
-        "resizable": true,
-        "center": true,
-        "visible": true
+        "decorations": false,
+        "transparent": true,
+        "resizable": false,
+        "visible": false
       }
     ],
     "security": {
