@@ -1,6 +1,6 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
-  import { onMount, tick } from "svelte";
+  import { onMount } from "svelte";
 
   interface DesktopIcon {
     name: string;
@@ -24,52 +24,8 @@
       console.error("Failed to load desktop icons:", e);
     } finally {
       loading = false;
-      await tick();
-      renderAllIcons();
     }
   });
-
-  function renderAllIcons() {
-    for (const icon of icons) {
-      const canvas = document.getElementById(`icon-${css(icon.path)}`) as HTMLCanvasElement;
-      if (canvas && icon.icon_data) {
-        renderIconToCanvas(canvas, icon);
-      }
-    }
-  }
-
-  function css(path: string): string {
-    let hash = 0;
-    for (let i = 0; i < path.length; i++) {
-      hash = ((hash << 5) - hash + path.charCodeAt(i)) | 0;
-    }
-    return "i" + Math.abs(hash).toString(36);
-  }
-
-  function renderIconToCanvas(canvas: HTMLCanvasElement, icon: DesktopIcon) {
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const size = icon.icon_size || 48;
-    canvas.width = size;
-    canvas.height = size;
-
-    try {
-      const raw = atob(icon.icon_data);
-      const pixels = new Uint8ClampedArray(raw.length);
-      for (let i = 0; i < raw.length; i++) {
-        pixels[i] = raw.charCodeAt(i);
-      }
-      if (pixels.length === size * size * 4) {
-        const imgData = new ImageData(pixels, size, size);
-        ctx.putImageData(imgData, 0, 0);
-      } else {
-        console.warn(`Icon ${icon.name}: expected ${size*size*4} bytes, got ${pixels.length}`);
-      }
-    } catch (e) {
-      console.error("Icon render error:", icon.name, e);
-    }
-  }
 
   async function handleDoubleClick(icon: DesktopIcon) {
     try {
@@ -96,20 +52,24 @@
         class="desktop-icon"
         style="left: {icon.x}px; top: {icon.y}px"
         ondblclick={() => handleDoubleClick(icon)}
-        title="{icon.name} — {icon.path}"
+        title={icon.name}
       >
-        <canvas
-          id="icon-{css(icon.path)}"
-          class="icon-canvas"
-          width="48"
-          height="48"
-        ></canvas>
+        {#if icon.icon_data}
+          <img
+            class="icon-image"
+            src="data:image/png;base64,{icon.icon_data}"
+            alt={icon.name}
+            draggable="false"
+          />
+        {:else}
+          <div class="icon-placeholder">📄</div>
+        {/if}
         <span class="icon-label">{icon.name}</span>
       </button>
     {/each}
 
     <div class="status-pill">
-      ❄ Frostpane M0 · {icons.length} icons loaded
+      ❄ Frostpane M0 · {icons.length} icons
     </div>
   {/if}
 </div>
@@ -179,10 +139,20 @@
     outline-offset: 2px;
   }
 
-  .icon-canvas {
+  .icon-image {
     width: 48px;
     height: 48px;
     pointer-events: none;
+    image-rendering: auto;
+    object-fit: contain;
+  }
+
+  .icon-placeholder {
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    font-size: 28px;
   }
 
   .icon-label {
