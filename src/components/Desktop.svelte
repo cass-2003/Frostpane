@@ -76,8 +76,13 @@
     if (!didDrag && Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD) {
       didDrag = true;
     }
-    ghostX = e.clientX - dragOffsetX;
-    ghostY = e.clientY - dragOffsetY;
+    if (didDrag) {
+      const newX = e.clientX - dragOffsetX;
+      const newY = e.clientY - dragOffsetY;
+      icons = icons.map((ic) =>
+        ic.path === dragging ? { ...ic, x: newX, y: newY } : ic
+      );
+    }
   }
 
   async function onPointerUp(e: PointerEvent) {
@@ -274,14 +279,13 @@
     max-width: 76px;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
-    color: #ffffff;
-    padding: 1px 4px;
-    border-radius: 3px;
-    background: rgba(0, 0, 0, 0.45);
-    text-shadow:
-      0 1px 2px rgba(0, 0, 0, 1),
-      0 0 4px rgba(0, 0, 0, 0.8);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    word-break: break-all;
+    color: #fff;
+    font-weight: 400;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.9);
     pointer-events: none;
   }
 
