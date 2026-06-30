@@ -2,65 +2,65 @@
 
 # Frostpane · 方寸
 
-**A smarter Windows desktop organizer**
+**更智能的 Windows 桌面整理工具**
 
-Fences-style translucent desktop zones · one-click file archiving · AI-powered icon classification · multilingual
+Fences 式半透明视觉分区 · 一键真实归档 · AI 智能识别分区 · 多语言
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-![Stage](https://img.shields.io/badge/stage-M0_tech_validation-yellow.svg)
+![Stage](https://img.shields.io/badge/阶段-M0_技术验证-yellow.svg)
 ![Tech](https://img.shields.io/badge/Tauri_2-Rust_%2B_Svelte_5-blue.svg)
 
 </div>
 
 ---
 
-## What is this?
+## 这是什么？
 
-Frostpane (方寸) is a desktop organizer for Windows, built to beat [Stardock Fences](https://www.stardock.com/products/fences/) — smarter, prettier, and free at its core:
+Frostpane（方寸）是一款 Windows 桌面整理工具，对标 [Stardock Fences](https://www.stardock.com/products/fences/)，更智能、更好看、核心免费：
 
-- 🪟 **Visual zones** — draw translucent fences on your desktop, drag icons to group them, instantly tidy
-- 📦 **Real archiving** — one click moves desktop files into proper folders, fully undoable + audit trail
-- 🤖 **AI-powered classification** (killer feature) — analyzes each shortcut/app's real purpose, searches the web for unknown ones, then proposes a smart grouping (Photoshop→Design, Steam→Games, VSCode→Dev…)
-- 🖥️ **Multi-monitor memory** — remembers icon layouts per resolution/display, no more scrambled icons after plugging in a projector
-- 🔍 **Full-disk search** — instant launcher for desktop + any folder, like Listary/Everything
-- 🌍 **Multilingual** — follows system locale, English & Chinese built-in, extensible language packs
+- 🪟 **视觉分区** — 在桌面画半透明栅栏，拖图标分组，桌面瞬间清爽
+- 📦 **真实归档** — 一键把桌面文件移入对应文件夹，全程可撤销 + 可审计
+- 🤖 **AI 智能识别分区**（杀手锏）— 逐个分析桌面软件的真实用途，不认识的联网搜索，深度思考后给出分类方案（Photoshop→设计、Steam→游戏、VSCode→开发……）
+- 🖥️ **多屏记忆** — 记住每个分辨率/显示器的图标布局，接投屏/换分辨率不再乱跳
+- 🔍 **全盘搜索** — 全局快捷键唤起，秒搜桌面与任意文件夹
+- 🌍 **多语言** — 跟随系统语言，中英文内置，可扩展任意语言包
 
-## Tech stack
+## 技术栈
 
-- **Tauri 2** (Rust backend + Svelte 5 frontend)
-- Windows 10/11 first, architecture ready for macOS
-- Win11 Fluent glass (Mica/Acrylic) + fluid animations + themeable
+- **Tauri 2**（Rust 后端 + Svelte 5 前端）
+- Windows 10/11 优先，架构预留 macOS
+- Win11 Fluent 毛玻璃 + 高级动效 + 可换主题
 
-## Building from source
+## 从源码构建
 
-Prerequisites: [Rust](https://rustup.rs/) 1.77+, [Node.js](https://nodejs.org/) 20+
+环境要求：[Rust](https://rustup.rs/) 1.77+、[Node.js](https://nodejs.org/) 20+
 
 ```bash
-git clone https://github.com/AYuQian/Frostpane.git
+git clone https://github.com/cass-2003/Frostpane.git
 cd Frostpane
 npm install
-cargo tauri dev      # dev mode with hot reload
-cargo tauri build    # production build
+cargo tauri dev      # 开发模式（热更新）
+cargo tauri build    # 生产构建
 ```
 
-## Project status
+## 项目状态
 
-🔨 **M0 — Technical validation** (in progress)
+🔨 **M0 · 技术验证**（进行中）
 
-- ✅ Transparent overlay window on desktop
-- ✅ Self-drawn desktop icons with high-res extraction (256px SHIL_JUMBO)
-- ✅ Double-click to open (ShellExecuteW), run as admin, open file location
-- ✅ Right-click context menu (quick actions + native Shell menu)
-- ✅ Drag-and-drop with grid snapping + position persistence
-- ⬜ Desktop-level window embedding (WorkerW)
-- ⬜ Multi-monitor positioning
-- ⬜ Memory & startup benchmarks
+- ✅ 透明覆盖窗口，壁纸可见
+- ✅ 桌面图标自绘，256px 高清提取（SHIL_JUMBO）
+- ✅ 双击打开（ShellExecuteW）、管理员运行、打开文件位置
+- ✅ 右键菜单（快捷操作 + 原生 Shell 菜单）
+- ✅ 拖拽移动 + 网格吸附 + 位置持久化
+- ⬜ 桌面层级嵌入（WorkerW）
+- ⬜ 多显示器定位
+- ⬜ 内存 / 启动速度测量
 
-📄 [Product Requirements (PRD)](docs/PRD.md) · 🗺️ [Roadmap M0–M4](docs/planning/roadmap.md) · 🏗️ [Architecture](docs/architecture/overview.md) · 📊 [Progress](state/PROGRESS.md)
+📄 [产品需求文档 PRD](docs/PRD.md) · 🗺️ [路线图 M0–M4](docs/planning/roadmap.md) · 🏗️ [架构概览](docs/architecture/overview.md) · 📊 [进度看板](state/PROGRESS.md)
 
-## Business model
+## 商业模式
 
-**Open Core**: core features are Apache-2.0 open source and free forever. AI classification, cloud sync, and premium themes are paid add-ons.
+**Open Core**：核心功能 Apache-2.0 开源免费，AI 识别 / 云同步 / 高级主题作增值付费。
 
 ## License
 
