@@ -11,6 +11,7 @@
   import SearchBar from "./SearchBar.svelte";
   import ArchiveDialog from "./ArchiveDialog.svelte";
   import Onboarding from "./Onboarding.svelte";
+  import RulesEditor from "./RulesEditor.svelte";
   import { settings, loadSettings } from "../lib/settings.svelte";
   import { t, initLocale } from "../lib/i18n.svelte";
 
@@ -72,6 +73,9 @@
   // Settings panel
   let settingsVisible = $state(false);
 
+  // Rules editor
+  let rulesEditorVisible = $state(false);
+
   // Scene manager
   let sceneManagerVisible = $state(false);
 
@@ -121,6 +125,29 @@
       }
       if (fences.length === 0) {
         onboardingVisible = true;
+      }
+
+      // Auto-sort unassigned icons via rules
+      try {
+        const rules = await invoke<any[]>("load_rules");
+        if (rules.length > 0) {
+          let changed = false;
+          for (let i = 0; i < icons.length; i++) {
+            if (icons[i].fence_id) continue;
+            const filename = icons[i].name;
+            const target = await invoke<string | null>("match_rules", { filename, rules });
+            if (target && fences.some((f) => f.id === target)) {
+              icons[i] = { ...icons[i], fence_id: target };
+              changed = true;
+            }
+          }
+          if (changed) {
+            icons = [...icons];
+            await saveAll();
+          }
+        }
+      } catch (e) {
+        console.error("Rules auto-sort failed:", e);
       }
     } catch (e) {
       error = String(e);
@@ -561,6 +588,9 @@
       case "scenes":
         sceneManagerVisible = true;
         break;
+      case "rules":
+        rulesEditorVisible = true;
+        break;
     }
   }
 
@@ -799,6 +829,13 @@
   onclose={() => (sceneManagerVisible = false)}
   onsave={saveAll}
   onload={handleSceneLoad}
+/>
+
+<!-- Rules editor -->
+<RulesEditor
+  bind:visible={rulesEditorVisible}
+  {fences}
+  onclose={() => (rulesEditorVisible = false)}
 />
 
 <!-- Archive confirmation dialog -->

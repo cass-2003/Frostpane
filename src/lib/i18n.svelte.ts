@@ -64,6 +64,22 @@ type Translations = {
   tipDragIcons: string;
   tipDoubleClick: string;
   done: string;
+  // FenceStyleEditor
+  fenceStyle: string;
+  resetStyle: string;
+  transparency: string;
+  borderRadius: string;
+  // Rules engine
+  rules: string;
+  addRule: string;
+  ruleName: string;
+  ruleCondition: string;
+  ruleExtension: string;
+  ruleNameContains: string;
+  ruleNamePrefix: string;
+  ruleTarget: string;
+  deleteRule: string;
+  noRules: string;
 };
 
 const en: Translations = {
@@ -125,6 +141,20 @@ const en: Translations = {
   tipDragIcons: "Drag icons into fences",
   tipDoubleClick: "Double-click desktop to show/hide",
   done: "Done!",
+  fenceStyle: "Appearance",
+  resetStyle: "Reset",
+  transparency: "Transparency",
+  borderRadius: "Border Radius",
+  rules: "Rules...",
+  addRule: "Add Rule",
+  ruleName: "Rule name",
+  ruleCondition: "Condition",
+  ruleExtension: "File extension",
+  ruleNameContains: "Name contains",
+  ruleNamePrefix: "Name prefix",
+  ruleTarget: "Target fence",
+  deleteRule: "Delete",
+  noRules: "No rules defined",
 };
 
 const zh: Translations = {
@@ -186,6 +216,20 @@ const zh: Translations = {
   tipDragIcons: "拖拽图标进入分区",
   tipDoubleClick: "双击桌面显示/隐藏分区",
   done: "完成！",
+  fenceStyle: "外观",
+  resetStyle: "重置",
+  transparency: "透明度",
+  borderRadius: "圆角",
+  rules: "规则...",
+  addRule: "添加规则",
+  ruleName: "规则名称",
+  ruleCondition: "条件",
+  ruleExtension: "文件扩展名",
+  ruleNameContains: "名称包含",
+  ruleNamePrefix: "名称前缀",
+  ruleTarget: "目标分区",
+  deleteRule: "删除",
+  noRules: "暂无规则",
 };
 
 const LOCALES: Record<Locale, Translations> = { en, zh };

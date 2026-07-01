@@ -71,6 +71,16 @@
 
   let isDragOver = $derived(dragOverFence === fence.id);
 
+  let fenceStyleVars = $derived(() => {
+    const s = fence.style;
+    const parts: string[] = [];
+    if (s?.bgColor) parts.push(`--fence-bg:${s.bgColor}`);
+    if (s?.borderColor) parts.push(`--fence-border:${s.borderColor}`);
+    if (s?.borderRadius !== undefined) parts.push(`--fence-radius:${s.borderRadius}px`);
+    if (s?.opacity !== undefined) parts.push(`opacity:${s.opacity}`);
+    return parts.join(';');
+  });
+
   $effect(() => {
     if (renameToken && renameToken > 0) startRename();
   });
@@ -216,7 +226,7 @@
   class:drag-over={isDragOver}
   class:is-moving={moving && didMove}
   class:is-resizing={resizing}
-  style="left:{fence.x}px; top:{fence.y}px; width:{fence.width}px;"
+  style="left:{fence.x}px; top:{fence.y}px; width:{fence.width}px;{fenceStyleVars()}"
   data-fence-id={fence.id}
 >
   <!-- Header -->
@@ -348,10 +358,10 @@
     position: absolute;
     display: flex;
     flex-direction: column;
-    background: var(--glass-bg);
+    background: var(--fence-bg, var(--glass-bg));
     backdrop-filter: blur(20px) saturate(1.3);
-    border: 1px solid var(--glass-border);
-    border-radius: 12px;
+    border: 1px solid var(--fence-border, var(--glass-border));
+    border-radius: var(--fence-radius, 12px);
     box-shadow:
       0 8px 32px rgba(0, 0, 0, 0.35),
       inset 0 1px 0 rgba(255, 255, 255, 0.08);
@@ -391,13 +401,13 @@
       rgba(255, 255, 255, 0.07) 0%,
       transparent 100%
     );
-    border-radius: 12px 12px 0 0;
+    border-radius: var(--fence-radius, 12px) var(--fence-radius, 12px) 0 0;
     flex-shrink: 0;
     touch-action: none;
   }
 
   .fence.collapsed .fence-header {
-    border-radius: 12px;
+    border-radius: var(--fence-radius, 12px);
     border-bottom: none;
   }
 

@@ -9,6 +9,13 @@ export interface DesktopIcon {
   fence_id?: string | null;
 }
 
+export interface FenceStyle {
+  bgColor?: string;      // e.g. "rgba(28, 32, 48, 0.42)"
+  borderColor?: string;  // e.g. "rgba(255, 255, 255, 0.18)"
+  opacity?: number;      // 0-1
+  borderRadius?: number; // px
+}
+
 export interface FenceData {
   id: string;
   title: string;
@@ -20,6 +27,7 @@ export interface FenceData {
   collapsed: boolean;
   icon_paths: string[];
   viewMode?: "grid" | "list";
+  style?: FenceStyle;
 }
 
 export interface AppSettings {

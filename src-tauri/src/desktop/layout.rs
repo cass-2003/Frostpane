@@ -23,6 +23,14 @@ pub struct FenceLayout {
     pub icon_paths: Vec<String>,
     #[serde(rename = "viewMode")]
     pub view_mode: Option<String>,
+    #[serde(rename = "bgColor", skip_serializing_if = "Option::is_none", default)]
+    pub bg_color: Option<String>,
+    #[serde(rename = "borderColor", skip_serializing_if = "Option::is_none", default)]
+    pub border_color: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub opacity: Option<f64>,
+    #[serde(rename = "borderRadius", skip_serializing_if = "Option::is_none", default)]
+    pub border_radius: Option<i32>,
 }
 
 fn config_dir() -> PathBuf {
