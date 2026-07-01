@@ -32,6 +32,7 @@
     { id: "sort_by_name", label: t.sortByName },
     { id: "sep3", label: "", separator: true },
     { id: "scenes", label: "Scenes..." },
+    { id: "rules", label: t.rules },
     { id: "settings", label: t.settings },
   ]);
 
