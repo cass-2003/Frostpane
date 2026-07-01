@@ -4,6 +4,10 @@ use desktop::context_menu;
 use desktop::icons::{self, DesktopIcon};
 use desktop::layout;
 use desktop::overlay;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
+use tauri::tray::TrayIconBuilder;
 use tauri::Manager;
 
 #[tauri::command]
@@ -95,18 +99,104 @@ pub fn run() {
             }
 
             // M0: run as maximized window (desktop-level embedding deferred)
-            // overlay::embed_in_desktop() has WebView2 transparency issues as Progman child
-            // TODO: investigate WS_EX_TOOLWINDOW + always-on-bottom for desktop-like behavior
             let _window = app
                 .get_webview_window("main")
                 .expect("main window not found");
 
+            // --- System tray ---
+            let icons_hidden = Arc::new(AtomicBool::new(false));
+
+            let toggle_window = MenuItemBuilder::new("Show/Hide Frostpane")
+                .id("toggle")
+                .build(app)?;
+            let toggle_icons = MenuItemBuilder::new("Hide Desktop Icons")
+                .id("hide_icons")
+                .build(app)?;
+            let sep1 = PredefinedMenuItem::separator(app)?;
+            let settings = MenuItemBuilder::new("Settings...")
+                .id("settings")
+                .build(app)?;
+            let about = MenuItemBuilder::new("About Frostpane")
+                .id("about")
+                .build(app)?;
+            let sep2 = PredefinedMenuItem::separator(app)?;
+            let exit_item = MenuItemBuilder::new("Exit")
+                .id("exit")
+                .build(app)?;
+
+            // Clone handle before menu consumes ownership via reference
+            let toggle_icons_handle = toggle_icons.clone();
+
+            let menu = MenuBuilder::new(app)
+                .item(&toggle_window)
+                .item(&toggle_icons)
+                .item(&sep1)
+                .item(&settings)
+                .item(&about)
+                .item(&sep2)
+                .item(&exit_item)
+                .build()?;
+
+            let tray = TrayIconBuilder::new()
+                .icon(app.default_window_icon().unwrap().clone())
+                .menu(&menu)
+                .tooltip("Frostpane")
+                .show_menu_on_left_click(false)
+                .on_menu_event({
+                    let icons_hidden = icons_hidden.clone();
+                    move |app, event| match event.id().as_ref() {
+                        "toggle" => {
+                            if let Some(window) = app.get_webview_window("main") {
+                                if window.is_visible().unwrap_or(false) {
+                                    let _ = window.hide();
+                                } else {
+                                    let _ = window.show();
+                                    let _ = window.set_focus();
+                                }
+                            }
+                        }
+                        "hide_icons" => {
+                            if icons_hidden.load(Ordering::SeqCst) {
+                                overlay::show_desktop_icons();
+                                icons_hidden.store(false, Ordering::SeqCst);
+                                let _ = toggle_icons_handle.set_text("Hide Desktop Icons");
+                            } else {
+                                overlay::hide_desktop_icons();
+                                icons_hidden.store(true, Ordering::SeqCst);
+                                let _ = toggle_icons_handle.set_text("Show Desktop Icons");
+                            }
+                        }
+                        "settings" => {
+                            log::info!("Settings: placeholder");
+                        }
+                        "about" => {
+                            log::info!("About: placeholder");
+                        }
+                        "exit" => {
+                            overlay::show_desktop_icons();
+                            app.exit(0);
+                        }
+                        _ => {}
+                    }
+                })
+                .build(app)?;
+
+            // Keep tray icon alive for the app's lifetime
+            app.manage(tray);
+
             Ok(())
         })
-        .on_window_event(|_window, event| {
-            if let tauri::WindowEvent::Destroyed = event {
+        .on_window_event(|window, event| match event {
+            // Hide to tray instead of quitting on window close
+            tauri::WindowEvent::CloseRequested { api, .. } => {
+                let _ = window.hide();
+                api.prevent_close();
+            }
+            // Restore desktop icons if the window is destroyed (e.g., app.exit)
+            tauri::WindowEvent::Destroyed => {
                 overlay::show_desktop_icons();
             }
+            _ => {}
         })
         .invoke_handler(tauri::generate_handler![
             get_desktop_icons,
@@ -119,6 +209,8 @@ pub fn run() {
             context_menu::show_native_context_menu,
             layout::save_icon_positions,
             layout::load_icon_positions,
+            layout::save_fence_layout,
+            layout::load_fence_layout,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
