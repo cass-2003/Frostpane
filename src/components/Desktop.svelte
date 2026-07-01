@@ -7,9 +7,10 @@
   import DesktopMenu from "./DesktopMenu.svelte";
   import FenceMenu from "./FenceMenu.svelte";
   import Settings from "./Settings.svelte";
+  import { settings, loadSettings } from "../lib/settings.svelte";
 
-  const GRID_W = 90;
-  const GRID_H = 100;
+  let gridW = $derived(settings.iconSize + 32);
+  let gridH = $derived(settings.iconSize + 52);
   const DRAG_THRESHOLD = 5;
   const DEFAULT_FENCE_W = 320;
   const DEFAULT_FENCE_H = 300;
@@ -20,6 +21,14 @@
   let error = $state("");
   let fencesHidden = $state(false);
 
+  // Selection state
+  let selectedPaths = $state<Set<string>>(new Set());
+  let boxSelecting = $state(false);
+  let boxStartX = $state(0);
+  let boxStartY = $state(0);
+  let boxCurrentX = $state(0);
+  let boxCurrentY = $state(0);
+
   // Icon drag state
   let draggingIcon = $state<string | null>(null);
   let dragOffsetX = 0;
@@ -28,6 +37,7 @@
   let dragStartY = 0;
   let didDrag = false;
   let dragOverFence = $state<string | null>(null);
+  let batchDragOffsets = $state<Map<string, { dx: number; dy: number }>>(new Map());
 
   let draggedIconData = $derived(
     draggingIcon ? (icons.find((ic) => ic.path === draggingIcon) ?? null) : null
@@ -61,6 +71,7 @@
   let fenceRenameTokens = $state<Record<string, number>>({});
 
   onMount(async () => {
+    loadSettings();
     try {
       const [loadedIcons, loadedFences] = await Promise.all([
         invoke<DesktopIcon[]>("get_desktop_icons"),
@@ -104,15 +115,40 @@
     if (e.button !== 0) return;
     e.preventDefault();
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+
+    if (e.ctrlKey) {
+      const next = new Set(selectedPaths);
+      if (next.has(icon.path)) next.delete(icon.path);
+      else next.add(icon.path);
+      selectedPaths = next;
+    } else if (!selectedPaths.has(icon.path)) {
+      selectedPaths = new Set([icon.path]);
+    }
+
     dragOffsetX = e.clientX - icon.x;
     dragOffsetY = e.clientY - icon.y;
     dragStartX = e.clientX;
     dragStartY = e.clientY;
     didDrag = false;
     draggingIcon = icon.path;
+
+    const offsets = new Map<string, { dx: number; dy: number }>();
+    if (selectedPaths.has(icon.path)) {
+      for (const p of selectedPaths) {
+        if (p === icon.path) continue;
+        const other = icons.find((ic) => ic.path === p && !ic.fence_id);
+        if (other) offsets.set(p, { dx: other.x - icon.x, dy: other.y - icon.y });
+      }
+    }
+    batchDragOffsets = offsets;
   }
 
   function onPointerMove(e: PointerEvent) {
+    if (boxSelecting) {
+      boxCurrentX = e.clientX;
+      boxCurrentY = e.clientY;
+      return;
+    }
     if (!draggingIcon) return;
     const dx = e.clientX - dragStartX;
     const dy = e.clientY - dragStartY;
@@ -122,39 +158,69 @@
     if (didDrag) {
       const newX = e.clientX - dragOffsetX;
       const newY = e.clientY - dragOffsetY;
-      icons = icons.map((ic) =>
-        ic.path === draggingIcon ? { ...ic, x: newX, y: newY } : ic
-      );
-      // Check if hovering over a fence
+      icons = icons.map((ic) => {
+        if (ic.path === draggingIcon) return { ...ic, x: newX, y: newY };
+        const off = batchDragOffsets.get(ic.path);
+        if (off) return { ...ic, x: newX + off.dx, y: newY + off.dy };
+        return ic;
+      });
       dragOverFence = hitTestFence(e.clientX, e.clientY);
     }
   }
 
   async function onPointerUp(e: PointerEvent) {
+    if (boxSelecting) {
+      boxSelecting = false;
+      const x1 = Math.min(boxStartX, boxCurrentX);
+      const y1 = Math.min(boxStartY, boxCurrentY);
+      const x2 = Math.max(boxStartX, boxCurrentX);
+      const y2 = Math.max(boxStartY, boxCurrentY);
+      const hit = new Set<string>();
+      for (const ic of freeIcons) {
+        const cx = ic.x + 40;
+        const cy = ic.y + 30;
+        if (cx >= x1 && cx <= x2 && cy >= y1 && cy <= y2) hit.add(ic.path);
+      }
+      selectedPaths = hit;
+      return;
+    }
+
     if (!draggingIcon) return;
     const path = draggingIcon;
     const targetFenceId = dragOverFence;
+    const offsets = batchDragOffsets;
     draggingIcon = null;
     dragOverFence = null;
+    batchDragOffsets = new Map();
 
     if (!didDrag) return;
 
+    const batchPaths = new Set([path, ...offsets.keys()]);
+
     if (targetFenceId) {
-      // Drop onto fence
       icons = icons.map((ic) =>
-        ic.path === path
+        batchPaths.has(ic.path)
           ? { ...ic, fence_id: targetFenceId, x: 0, y: 0 }
           : ic
       );
     } else {
-      // Drop on free desktop
-      const snappedX = snapToGrid(e.clientX - dragOffsetX, GRID_W);
-      const snappedY = snapToGrid(e.clientY - dragOffsetY, GRID_H);
-      icons = icons.map((ic) =>
-        ic.path === path
-          ? { ...ic, x: snappedX, y: snappedY, fence_id: null }
-          : ic
-      );
+      const snappedX = snapToGrid(e.clientX - dragOffsetX, gridW);
+      const snappedY = snapToGrid(e.clientY - dragOffsetY, gridH);
+      icons = icons.map((ic) => {
+        if (ic.path === path) {
+          return { ...ic, x: snappedX, y: snappedY, fence_id: null };
+        }
+        const off = offsets.get(ic.path);
+        if (off) {
+          return {
+            ...ic,
+            x: snapToGrid(snappedX + off.dx, gridW),
+            y: snapToGrid(snappedY + off.dy, gridH),
+            fence_id: null,
+          };
+        }
+        return ic;
+      });
     }
 
     await saveAll();
@@ -362,6 +428,18 @@
 
   // ── Desktop empty-space interactions ──
 
+  function onDesktopPointerDown(e: PointerEvent) {
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("[data-fence-id]") || target.closest(".desktop-icon")) return;
+    if (!e.ctrlKey) selectedPaths = new Set();
+    boxSelecting = true;
+    boxStartX = e.clientX;
+    boxStartY = e.clientY;
+    boxCurrentX = e.clientX;
+    boxCurrentY = e.clientY;
+  }
+
   function handleDesktopContext(e: MouseEvent) {
     if ((e.target as HTMLElement).closest("[data-fence-id]")) return;
     if ((e.target as HTMLElement).closest(".desktop-icon")) return;
@@ -465,6 +543,9 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   class="desktop-overlay"
+  class:anim-off={settings.animationLevel === 'off'}
+  class:anim-basic={settings.animationLevel === 'basic'}
+  onpointerdown={onDesktopPointerDown}
   onpointermove={onPointerMove}
   onpointerup={onPointerUp}
   oncontextmenu={handleDesktopContext}
@@ -509,6 +590,7 @@
       <button
         class="desktop-icon"
         class:is-dragging={icon.path === draggingIcon && didDrag}
+        class:selected={selectedPaths.has(icon.path)}
         style="left: {icon.x}px; top: {icon.y}px"
         onpointerdown={(e) => onIconPointerDown(e, icon)}
         ondblclick={() => handleDoubleClick(icon)}
@@ -521,13 +603,21 @@
             src="data:image/png;base64,{icon.icon_data}"
             alt={icon.name}
             draggable="false"
+            style="width: {settings.iconSize}px; height: {settings.iconSize}px"
           />
         {:else}
-          <div class="icon-placeholder">📄</div>
+          <div class="icon-placeholder" style="width: {settings.iconSize}px; height: {settings.iconSize}px">📄</div>
         {/if}
         <span class="icon-label">{icon.name}</span>
       </button>
     {/each}
+    {/if}
+
+    {#if boxSelecting}
+      <div
+        class="selection-box"
+        style="left:{Math.min(boxStartX, boxCurrentX)}px; top:{Math.min(boxStartY, boxCurrentY)}px; width:{Math.abs(boxCurrentX - boxStartX)}px; height:{Math.abs(boxCurrentY - boxStartY)}px"
+      ></div>
     {/if}
 
     <div class="status-pill">
@@ -576,6 +666,15 @@
   .desktop-overlay {
     position: fixed;
     inset: 0;
+  }
+
+  :global(.anim-off *) {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  :global(.anim-basic *) {
+    animation: none !important;
   }
 
   .status-pill {
@@ -654,9 +753,22 @@
     padding: 1px 3px;
   }
 
+  .desktop-icon.selected {
+    background: rgba(91, 141, 239, 0.25);
+    outline: 2px solid var(--accent);
+  }
+
   .desktop-icon.is-dragging {
     opacity: 0.35;
     cursor: grabbing;
+  }
+
+  .selection-box {
+    position: absolute;
+    border: 1px solid var(--accent);
+    background: rgba(91, 141, 239, 0.15);
+    z-index: 50;
+    pointer-events: none;
   }
 
   .icon-image {

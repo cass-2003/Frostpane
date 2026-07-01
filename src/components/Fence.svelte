@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { DesktopIcon, FenceData } from "../lib/types";
+  import { settings } from "../lib/settings.svelte";
 
   interface Props {
     fence: FenceData;
@@ -293,9 +294,10 @@
                 src="data:image/png;base64,{icon.icon_data}"
                 alt={icon.name}
                 draggable="false"
+                style="width: {settings.iconSize}px; height: {settings.iconSize}px"
               />
             {:else}
-              <div class="icon-placeholder">📄</div>
+              <div class="icon-placeholder" style="width: {settings.iconSize}px; height: {settings.iconSize}px">📄</div>
             {/if}
             <span class="icon-label">{icon.name}</span>
           </button>
