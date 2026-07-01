@@ -100,7 +100,11 @@ pub fn run() {
                 )?;
             }
 
-            // M0: run as maximized window (desktop-level embedding deferred)
+            // Auto-backup on startup
+            if let Ok(name) = layout::create_backup() {
+                log::info!("Startup backup created: {}", name);
+            }
+
             let _window = app
                 .get_webview_window("main")
                 .expect("main window not found");
@@ -213,6 +217,12 @@ pub fn run() {
             layout::load_icon_positions,
             layout::save_fence_layout,
             layout::load_fence_layout,
+            layout::save_scene,
+            layout::load_scene,
+            layout::list_scenes,
+            layout::delete_scene,
+            layout::create_backup,
+            layout::restore_backup,
             autostart::is_autostart_enabled,
             autostart::set_autostart,
             settings::save_app_settings,
