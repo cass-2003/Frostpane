@@ -1,6 +1,5 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
-  import { getCurrentWindow } from "@tauri-apps/api/window";
   import { onMount } from "svelte";
   import type { DesktopIcon, FenceData } from "../lib/types";
   import Fence from "./Fence.svelte";
@@ -18,6 +17,7 @@
   let fences = $state<FenceData[]>([]);
   let loading = $state(true);
   let error = $state("");
+  let fencesHidden = $state(false);
 
   // Icon drag state
   let draggingIcon = $state<string | null>(null);
@@ -165,9 +165,53 @@
     return null;
   }
 
+  // ── Snap/magnetic alignment ──
+
+  const SNAP_DISTANCE = 12;
+
+  function snapFencePosition(id: string, rawX: number, rawY: number): { x: number; y: number } {
+    let x = rawX;
+    let y = rawY;
+    const moving = fences.find((f) => f.id === id);
+    if (!moving) return { x, y };
+
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const right = x + moving.width;
+    const bottom = y + moving.height;
+
+    // Snap to screen edges
+    if (Math.abs(x) < SNAP_DISTANCE) x = 0;
+    if (Math.abs(y) < SNAP_DISTANCE) y = 0;
+    if (Math.abs(right - vw) < SNAP_DISTANCE) x = vw - moving.width;
+    if (Math.abs(bottom - vh) < SNAP_DISTANCE) y = vh - moving.height;
+
+    // Snap to other fences
+    for (const other of fences) {
+      if (other.id === id) continue;
+      const oRight = other.x + other.width;
+      const oBottom = other.y + other.height;
+
+      // Horizontal snaps
+      if (Math.abs(x - oRight) < SNAP_DISTANCE) x = oRight;
+      if (Math.abs(right - other.x) < SNAP_DISTANCE) x = other.x - moving.width;
+      if (Math.abs(x - other.x) < SNAP_DISTANCE) x = other.x;
+      if (Math.abs(right - oRight) < SNAP_DISTANCE) x = oRight - moving.width;
+
+      // Vertical snaps
+      if (Math.abs(y - oBottom) < SNAP_DISTANCE) y = oBottom;
+      if (Math.abs(bottom - other.y) < SNAP_DISTANCE) y = other.y - moving.height;
+      if (Math.abs(y - other.y) < SNAP_DISTANCE) y = other.y;
+      if (Math.abs(bottom - oBottom) < SNAP_DISTANCE) y = oBottom - moving.height;
+    }
+
+    return { x, y };
+  }
+
   // ── Fence callbacks ──
 
-  function handleFenceMove(id: string, x: number, y: number) {
+  function handleFenceMove(id: string, rawX: number, rawY: number) {
+    const { x, y } = snapFencePosition(id, rawX, rawY);
     fences = fences.map((f) => (f.id === id ? { ...f, x, y } : f));
   }
 
@@ -271,14 +315,10 @@
     deskMenuVisible = true;
   }
 
-  async function handleDesktopDblClick(e: MouseEvent) {
+  function handleDesktopDblClick(e: MouseEvent) {
     if ((e.target as HTMLElement).closest("[data-fence-id]")) return;
     if ((e.target as HTMLElement).closest(".desktop-icon")) return;
-    try {
-      await getCurrentWindow().minimize();
-    } catch (err) {
-      console.error("Failed to minimize:", err);
-    }
+    fencesHidden = !fencesHidden;
   }
 
   function handleDesktopMenuAction(id: string) {
@@ -384,7 +424,8 @@
       <span>Error: {error}</span>
     </div>
   {:else}
-    <!-- Fences -->
+    <!-- Fences (hidden via double-click toggle) -->
+    {#if !fencesHidden}
     {#each fences as fence (fence.id)}
       <Fence
         {fence}
@@ -403,8 +444,10 @@
         onsave={saveFences}
       />
     {/each}
+    {/if}
 
-    <!-- Free icons (not in any fence) -->
+    <!-- Free icons (not in any fence) — also hidden when fences toggled -->
+    {#if !fencesHidden}
     {#each freeIcons as icon (icon.path)}
       <button
         class="desktop-icon"
@@ -428,6 +471,7 @@
         <span class="icon-label">{icon.name}</span>
       </button>
     {/each}
+    {/if}
 
     <div class="status-pill">
       ❄ Frostpane · {fences.length} fences · {icons.length} icons
