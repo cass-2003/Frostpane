@@ -1,7 +1,8 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
-  import { onMount } from "svelte";
-  import type { DesktopIcon, FenceData, FenceStyle } from "../lib/types";
+  import { onMount, onDestroy } from "svelte";
+  import { initGlobalShortcuts, unregisterAll } from "../lib/shortcuts";
+  import type { DesktopIcon, FenceData, FenceStyle, PageData } from "../lib/types";
   import Fence from "./Fence.svelte";
   import ContextMenu from "./ContextMenu.svelte";
   import DesktopMenu from "./DesktopMenu.svelte";
@@ -106,31 +107,63 @@
   // Per-fence rename trigger tokens
   let fenceRenameTokens = $state<Record<string, number>>({});
 
+  // Pages state
+  let currentPage = $state(0);
+  let totalPages = $state(1);
+  let pages = $state<PageData[]>([]);
+  let slideDir = $state<"left" | "right" | null>(null);
+  let edgeHoldTimer: ReturnType<typeof setTimeout> | null = null;
+  let edgeIndicatorVisible = $state(false);
+  let edgeIndicatorSide = $state<"left" | "right">("right");
+
+  onDestroy(() => {
+    unregisterAll().catch(() => {});
+  });
+
   onMount(async () => {
     initLocale();
     await loadSettings();
+
+    initGlobalShortcuts({
+      onToggleSearch: () => { searchVisible = !searchVisible; },
+      onToggleFences: () => { fencesHidden = !fencesHidden; },
+    }).catch((e) => console.error("Global shortcuts failed to register:", e));
+
     try {
-      const [loadedIcons, loadedFences] = await Promise.all([
+      const [loadedIcons, loadedPagesRaw] = await Promise.all([
         invoke<DesktopIcon[]>("get_desktop_icons"),
-        invoke<FenceData[]>("load_fence_layout").catch(() => []),
+        invoke<PageData[]>("load_pages").catch(() => []),
       ]);
       icons = loadedIcons;
 
-      // Restore fence assignments from loaded fence data
-      if (loadedFences.length > 0) {
-        const fenceMap = new Map<string, string>();
-        for (const f of loadedFences) {
-          for (const p of f.icon_paths) {
-            fenceMap.set(p, f.id);
+      if (loadedPagesRaw.length > 0) {
+        pages = loadedPagesRaw;
+        totalPages = loadedPagesRaw.length;
+        loadPageData(loadedPagesRaw[0]);
+      } else {
+        // Migration: load from legacy fences.json
+        const loadedFences = await invoke<FenceData[]>("load_fence_layout").catch(() => []);
+        if (loadedFences.length > 0) {
+          const fenceMap = new Map<string, string>();
+          for (const f of loadedFences) {
+            for (const p of f.icon_paths) {
+              fenceMap.set(p, f.id);
+            }
           }
+          icons = icons.map((ic) => ({
+            ...ic,
+            fence_id: fenceMap.get(ic.path) ?? null,
+          }));
+          fences = loadedFences;
+          pages = [buildCurrentPageData()];
+        } else {
+          pages = [{ fences: [] }];
+          onboardingVisible = true;
         }
-        icons = icons.map((ic) => ({
-          ...ic,
-          fence_id: fenceMap.get(ic.path) ?? null,
-        }));
-        fences = loadedFences;
+        totalPages = 1;
       }
-      if (fences.length === 0) {
+
+      if (fences.length === 0 && !onboardingVisible) {
         onboardingVisible = true;
       }
 
@@ -172,6 +205,105 @@
     return "fence_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   }
 
+  // ── Pages ──
+
+  function buildCurrentPageData(): PageData {
+    return {
+      fences: buildFencesForSave(),
+      iconPositions: icons.map((ic) => ({ path: ic.path, x: ic.x, y: ic.y })),
+    };
+  }
+
+  function loadPageData(page: PageData) {
+    if (page.fences.length > 0) {
+      fences = page.fences;
+      const fenceMap = new Map<string, string>();
+      for (const f of page.fences) {
+        for (const p of f.icon_paths) {
+          fenceMap.set(p, f.id);
+        }
+      }
+      icons = icons.map((ic) => ({
+        ...ic,
+        fence_id: fenceMap.get(ic.path) ?? null,
+        ...(page.iconPositions?.find((p) => p.path === ic.path) ?? {}),
+      }));
+    } else {
+      fences = [];
+      icons = icons.map((ic) => ({ ...ic, fence_id: null }));
+    }
+  }
+
+  async function switchToPage(targetIndex: number) {
+    if (targetIndex < 0 || targetIndex >= totalPages || targetIndex === currentPage) return;
+    pages[currentPage] = buildCurrentPageData();
+    pages = [...pages];
+    currentPage = targetIndex;
+    loadPageData(pages[targetIndex]);
+    slideDir = targetIndex > currentPage ? "left" : "right";
+    setTimeout(() => { slideDir = null; }, 300);
+    await saveAllPages();
+  }
+
+  async function addPage() {
+    pages[currentPage] = buildCurrentPageData();
+    const newPage: PageData = { fences: [] };
+    pages = [...pages, newPage];
+    totalPages = pages.length;
+    currentPage = totalPages - 1;
+    loadPageData(newPage);
+    await saveAllPages();
+  }
+
+  async function deletePage() {
+    if (totalPages <= 1) return;
+    pages.splice(currentPage, 1);
+    pages = [...pages];
+    totalPages = pages.length;
+    if (currentPage >= totalPages) currentPage = totalPages - 1;
+    loadPageData(pages[currentPage]);
+    await saveAllPages();
+  }
+
+  async function saveAllPages() {
+    pages[currentPage] = buildCurrentPageData();
+    try {
+      await invoke("save_pages", { pages });
+    } catch (err) {
+      console.error("Failed to save pages:", err);
+    }
+  }
+
+  function handleEdgeDetection(e: PointerEvent) {
+    const threshold = 2;
+    const vw = window.innerWidth;
+    if (e.clientX >= vw - threshold && currentPage < totalPages - 1) {
+      if (!edgeHoldTimer) {
+        edgeIndicatorSide = "right";
+        edgeIndicatorVisible = true;
+        edgeHoldTimer = setTimeout(() => {
+          edgeIndicatorVisible = false;
+          edgeHoldTimer = null;
+          switchToPage(currentPage + 1);
+        }, 500);
+      }
+    } else if (e.clientX <= threshold && currentPage > 0) {
+      if (!edgeHoldTimer) {
+        edgeIndicatorSide = "left";
+        edgeIndicatorVisible = true;
+        edgeHoldTimer = setTimeout(() => {
+          edgeIndicatorVisible = false;
+          edgeHoldTimer = null;
+          switchToPage(currentPage - 1);
+        }, 500);
+      }
+    } else if (edgeHoldTimer) {
+      clearTimeout(edgeHoldTimer);
+      edgeHoldTimer = null;
+      edgeIndicatorVisible = false;
+    }
+  }
+
   // ── Icon drag ──
 
   function onIconPointerDown(e: PointerEvent, icon: DesktopIcon) {
@@ -207,6 +339,7 @@
   }
 
   function onPointerMove(e: PointerEvent) {
+    handleEdgeDetection(e);
     if (boxSelecting) {
       boxCurrentX = e.clientX;
       boxCurrentY = e.clientY;
@@ -266,6 +399,24 @@
           ? { ...ic, fence_id: targetFenceId, x: 0, y: 0 }
           : ic
       );
+      // If target fence has tabs, add dropped icons to the active tab
+      const targetFence = fences.find(f => f.id === targetFenceId);
+      if (targetFence?.tabs && targetFence.tabs.length > 0) {
+        const activeTabId = targetFence.activeTab ?? targetFence.tabs[0]?.id;
+        if (activeTabId) {
+          fences = fences.map(f => {
+            if (f.id !== targetFenceId) return f;
+            return {
+              ...f,
+              tabs: f.tabs?.map(tab =>
+                tab.id === activeTabId
+                  ? { ...tab, icon_paths: [...new Set([...tab.icon_paths, ...batchPaths])] }
+                  : tab
+              )
+            };
+          });
+        }
+      }
     } else {
       const snappedX = snapToGrid(e.clientX - dragOffsetX, gridW);
       const snappedY = snapToGrid(e.clientY - dragOffsetY, gridH);
@@ -431,6 +582,28 @@
         );
         saveFences();
         break;
+      case "add_tab": {
+        const fence = fences.find(f => f.id === fenceId);
+        if (!fence) break;
+        if (!fence.tabs || fence.tabs.length === 0) {
+          const firstTabId = generateId();
+          const currentIconPaths = icons.filter(ic => ic.fence_id === fenceId).map(ic => ic.path);
+          fences = fences.map(f =>
+            f.id === fenceId
+              ? { ...f, tabs: [{ id: firstTabId, name: t.newTab, icon_paths: currentIconPaths }], activeTab: firstTabId }
+              : f
+          );
+        } else {
+          const newTabId = generateId();
+          fences = fences.map(f =>
+            f.id === fenceId
+              ? { ...f, tabs: [...(f.tabs ?? []), { id: newTabId, name: t.newTab, icon_paths: [] }], activeTab: newTabId }
+              : f
+          );
+        }
+        saveFences();
+        break;
+      }
       case "appearance":
         styleEditorFenceId = fenceId;
         styleEditorX = fenceMenuX;
@@ -508,6 +681,14 @@
   // ── Icon interactions within fences ──
 
   function handleFenceIconDragStart(e: PointerEvent, icon: DesktopIcon) {
+    // Remove icon from any tab's icon_paths when dragging out
+    fences = fences.map(f => ({
+      ...f,
+      tabs: f.tabs?.map(tab => ({
+        ...tab,
+        icon_paths: tab.icon_paths.filter(p => p !== icon.path)
+      }))
+    }));
     icons = icons.map((ic) =>
       ic.path === icon.path
         ? { ...ic, fence_id: null, x: e.clientX - 40, y: e.clientY - 24 }
@@ -620,6 +801,18 @@
       case "rules":
         rulesEditorVisible = true;
         break;
+      case "next_page":
+        switchToPage(currentPage + 1);
+        break;
+      case "prev_page":
+        switchToPage(currentPage - 1);
+        break;
+      case "add_page":
+        addPage();
+        break;
+      case "delete_page":
+        deletePage();
+        break;
     }
   }
 
@@ -728,11 +921,71 @@
   }
 
   async function saveAll() {
-    await Promise.all([savePositions(), saveFences()]);
+    await Promise.all([savePositions(), saveFences(), saveAllPages()]);
   }
 
   function iconsForFence(fenceId: string): DesktopIcon[] {
-    return icons.filter((ic) => ic.fence_id === fenceId);
+    const fence = fences.find(f => f.id === fenceId);
+    if (!fence?.tabs || fence.tabs.length === 0) {
+      return icons.filter((ic) => ic.fence_id === fenceId);
+    }
+    const activeTab = fence.tabs.find(t => t.id === fence.activeTab) ?? fence.tabs[0];
+    if (!activeTab) return icons.filter(ic => ic.fence_id === fenceId);
+    const activeTabPaths = new Set(activeTab.icon_paths);
+    return icons.filter(ic => ic.fence_id === fenceId && activeTabPaths.has(ic.path));
+  }
+
+  // ── Tab handlers ──
+
+  function handleFenceTabChange(fenceId: string, tabId: string) {
+    fences = fences.map(f => f.id === fenceId ? { ...f, activeTab: tabId } : f);
+    saveFences();
+  }
+
+  function handleFenceTabAdd(fenceId: string) {
+    const newTabId = generateId();
+    fences = fences.map(f =>
+      f.id === fenceId
+        ? { ...f, tabs: [...(f.tabs ?? []), { id: newTabId, name: t.newTab, icon_paths: [] }], activeTab: newTabId }
+        : f
+    );
+    saveFences();
+  }
+
+  function handleFenceTabRename(fenceId: string, tabId: string, name: string) {
+    fences = fences.map(f =>
+      f.id === fenceId
+        ? { ...f, tabs: f.tabs?.map(tab => tab.id === tabId ? { ...tab, name } : tab) }
+        : f
+    );
+    saveFences();
+  }
+
+  function handleFenceTabDelete(fenceId: string, tabId: string) {
+    const fence = fences.find(f => f.id === fenceId);
+    if (!fence?.tabs) return;
+    const deletedTab = fence.tabs.find(t => t.id === tabId);
+    const remainingTabs = fence.tabs.filter(t => t.id !== tabId);
+    const newActiveTab = fence.activeTab === tabId ? remainingTabs[0]?.id : fence.activeTab;
+    if (remainingTabs.length === 0) {
+      fences = fences.map(f => f.id === fenceId ? { ...f, tabs: undefined, activeTab: undefined } : f);
+    } else {
+      const deletedPaths = deletedTab?.icon_paths ?? [];
+      const targetTabId = newActiveTab ?? remainingTabs[0].id;
+      fences = fences.map(f => {
+        if (f.id !== fenceId) return f;
+        return {
+          ...f,
+          activeTab: newActiveTab,
+          tabs: remainingTabs.map(tab =>
+            tab.id === targetTabId && deletedPaths.length > 0
+              ? { ...tab, icon_paths: [...new Set([...tab.icon_paths, ...deletedPaths])] }
+              : tab
+          )
+        };
+      });
+    }
+    saveFences();
   }
 
   function handleFenceStyleChange(fenceId: string, style: FenceStyle) {
@@ -742,10 +995,8 @@
 </script>
 
 <svelte:window onkeydown={(e) => {
-  if (e.altKey && e.code === "Space") {
-    e.preventDefault();
-    searchVisible = !searchVisible;
-  }
+  if (e.ctrlKey && e.key === "ArrowRight") { e.preventDefault(); switchToPage(currentPage + 1); }
+  if (e.ctrlKey && e.key === "ArrowLeft") { e.preventDefault(); switchToPage(currentPage - 1); }
 }} />
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -788,6 +1039,10 @@
         onicondragstart={handleFenceIconDragStart}
         onsave={saveFences}
         renameToken={fenceRenameTokens[fence.id] ?? 0}
+        ontabchange={handleFenceTabChange}
+        ontabadd={handleFenceTabAdd}
+        ontabrename={handleFenceTabRename}
+        ontabdelete={handleFenceTabDelete}
       />
     {/each}
     {/if}
@@ -829,8 +1084,27 @@
     {/if}
 
     <div class="status-pill">
-      {t.statusBar(fences.length, icons.length)}
+      {t.statusBar(fences.length, icons.length, currentPage + 1, totalPages)}
+      {#if totalPages > 1}
+        <span class="page-dots">
+          {#each Array(totalPages) as _, i}
+            <button
+              class="page-dot"
+              class:active={i === currentPage}
+              onclick={() => switchToPage(i)}
+              title="Page {i + 1}"
+            ></button>
+          {/each}
+        </span>
+      {/if}
     </div>
+
+    <!-- Edge indicators for page switching -->
+    {#if edgeIndicatorVisible}
+      <div class="edge-indicator" class:left={edgeIndicatorSide === "left"} class:right={edgeIndicatorSide === "right"}>
+        <span class="edge-arrow">{edgeIndicatorSide === "left" ? "◀" : "▶"}</span>
+      </div>
+    {/if}
   {/if}
 </div>
 
@@ -1057,5 +1331,60 @@
       0 0 4px rgba(0, 0, 0, 0.7),
       0 0 6px rgba(0, 0, 0, 0.4);
     pointer-events: none;
+  }
+
+  .page-dots {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    margin-left: 8px;
+  }
+
+  .page-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.15);
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.2s, transform 0.15s;
+  }
+
+  .page-dot:hover {
+    background: rgba(255, 255, 255, 0.35);
+    transform: scale(1.3);
+  }
+
+  .page-dot.active {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .edge-indicator {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9000;
+    pointer-events: none;
+    animation: edge-pulse 0.5s ease-in-out infinite alternate;
+  }
+
+  .edge-indicator.left { left: 0; }
+  .edge-indicator.right { right: 0; }
+
+  .edge-arrow {
+    font-size: 24px;
+    color: var(--accent);
+    text-shadow: 0 0 12px var(--accent-glow), 0 0 24px var(--accent-glow);
+  }
+
+  @keyframes edge-pulse {
+    from { opacity: 0.4; }
+    to { opacity: 1; }
   }
 </style>
