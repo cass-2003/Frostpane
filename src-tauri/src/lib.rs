@@ -102,6 +102,7 @@ pub fn run() {
                 let _ = window.set_focus();
             }
         }))
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
@@ -234,6 +235,8 @@ pub fn run() {
             layout::delete_scene,
             layout::create_backup,
             layout::restore_backup,
+            layout::save_pages,
+            layout::load_pages,
             autostart::is_autostart_enabled,
             autostart::set_autostart,
             settings::save_app_settings,
