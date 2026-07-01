@@ -1,6 +1,7 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import { onMount } from "svelte";
+  import { settings, loadSettings } from "../lib/settings.svelte";
 
   interface Props {
     visible: boolean;
@@ -12,9 +13,17 @@
   let autostart = $state(false);
   let loading = $state(true);
 
+  const ICON_SIZES = [32, 48, 64, 96];
+  const ANIM_LEVELS: Array<{ value: "off" | "basic" | "full"; label: string }> = [
+    { value: "off", label: "Off" },
+    { value: "basic", label: "Basic" },
+    { value: "full", label: "Full" },
+  ];
+
   onMount(async () => {
     try {
       autostart = await invoke<boolean>("is_autostart_enabled");
+      await loadSettings();
     } catch (e) {
       console.error("Failed to check autostart:", e);
     } finally {
@@ -75,6 +84,38 @@
                 <span class="toggle-knob"></span>
               </button>
             </label>
+          </section>
+
+          <section class="settings-section">
+            <h3>Appearance</h3>
+            <div class="setting-row">
+              <span class="setting-label">Icon size</span>
+              <div class="size-picker">
+                {#each ICON_SIZES as size}
+                  <button
+                    class="size-btn"
+                    class:active={settings.iconSize === size}
+                    onclick={() => { settings.iconSize = size; }}
+                  >
+                    {size}
+                  </button>
+                {/each}
+              </div>
+            </div>
+            <div class="setting-row">
+              <span class="setting-label">Animations</span>
+              <div class="size-picker">
+                {#each ANIM_LEVELS as lvl}
+                  <button
+                    class="size-btn"
+                    class:active={settings.animationLevel === lvl.value}
+                    onclick={() => { settings.animationLevel = lvl.value; }}
+                  >
+                    {lvl.label}
+                  </button>
+                {/each}
+              </div>
+            </div>
           </section>
 
           <section class="settings-section">
@@ -226,6 +267,33 @@
 
   .toggle-switch.active .toggle-knob {
     transform: translateX(20px);
+  }
+
+  .size-picker {
+    display: flex;
+    gap: 4px;
+  }
+
+  .size-btn {
+    padding: 4px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+
+  .size-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text);
+  }
+
+  .size-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
   }
 
   .about-info {
