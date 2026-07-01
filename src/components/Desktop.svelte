@@ -6,6 +6,7 @@
   import Fence from "./Fence.svelte";
   import ContextMenu from "./ContextMenu.svelte";
   import DesktopMenu from "./DesktopMenu.svelte";
+  import Settings from "./Settings.svelte";
 
   const GRID_W = 90;
   const GRID_H = 100;
@@ -45,6 +46,9 @@
   let deskMenuVisible = $state(false);
   let deskMenuX = $state(0);
   let deskMenuY = $state(0);
+
+  // Settings panel
+  let settingsVisible = $state(false);
 
   onMount(async () => {
     try {
@@ -295,6 +299,7 @@
         saveAll();
         break;
       case "settings":
+        settingsVisible = true;
         break;
     }
   }
@@ -447,6 +452,12 @@
   y={deskMenuY}
   onclose={() => (deskMenuVisible = false)}
   onaction={handleDesktopMenuAction}
+/>
+
+<!-- Settings panel -->
+<Settings
+  bind:visible={settingsVisible}
+  onclose={() => (settingsVisible = false)}
 />
 
 <style>
