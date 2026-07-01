@@ -3,9 +3,11 @@ mod desktop;
 use desktop::archive;
 use desktop::autostart;
 use desktop::context_menu;
+use desktop::health;
 use desktop::icons::{self, DesktopIcon};
 use desktop::layout;
 use desktop::overlay;
+use desktop::rules;
 use desktop::search;
 use desktop::settings;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -240,6 +242,11 @@ pub fn run() {
             archive::execute_archive,
             archive::undo_archive,
             archive::list_archive_history,
+            rules::save_rules,
+            rules::load_rules,
+            rules::match_rules,
+            health::check_broken_shortcuts,
+            health::delete_broken_shortcuts,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

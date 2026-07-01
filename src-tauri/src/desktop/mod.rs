@@ -1,8 +1,10 @@
 pub mod archive;
 pub mod autostart;
 pub mod context_menu;
+pub mod health;
 pub mod icons;
 pub mod layout;
 pub mod overlay;
+pub mod rules;
 pub mod search;
 pub mod settings;
