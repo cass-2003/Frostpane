@@ -1,5 +1,6 @@
 mod desktop;
 
+use desktop::autostart;
 use desktop::context_menu;
 use desktop::icons::{self, DesktopIcon};
 use desktop::layout;
@@ -211,6 +212,8 @@ pub fn run() {
             layout::load_icon_positions,
             layout::save_fence_layout,
             layout::load_fence_layout,
+            autostart::is_autostart_enabled,
+            autostart::set_autostart,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
