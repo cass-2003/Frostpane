@@ -400,6 +400,7 @@
         onicondblclick={handleFenceIconDblClick}
         oniconcontextmenu={handleFenceIconContext}
         onicondragstart={handleFenceIconDragStart}
+        onsave={saveFences}
       />
     {/each}
 

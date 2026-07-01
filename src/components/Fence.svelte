@@ -15,6 +15,7 @@
     onicondblclick: (icon: DesktopIcon) => void;
     oniconcontextmenu: (e: MouseEvent, icon: DesktopIcon) => void;
     onicondragstart: (e: PointerEvent, icon: DesktopIcon) => void;
+    onsave: () => void;
   }
 
   let {
@@ -31,6 +32,7 @@
     onicondblclick,
     oniconcontextmenu,
     onicondragstart,
+    onsave,
   }: Props = $props();
 
   const DRAG_THRESHOLD = 5;
@@ -91,6 +93,7 @@
   }
 
   function onMoveUp(_e: PointerEvent) {
+    if (moving && didMove) onsave();
     moving = false;
   }
 
@@ -114,6 +117,7 @@
   }
 
   function onResizeUp(_e: PointerEvent) {
+    if (resizing) onsave();
     resizing = false;
   }
 
