@@ -91,7 +91,7 @@ fn display_name(path: &Path) -> String {
 }
 
 #[cfg(windows)]
-fn extract_icon_png(path: &Path) -> (String, i32) {
+pub fn extract_icon_png(path: &Path) -> (String, i32) {
     use base64::engine::general_purpose::STANDARD;
     use base64::Engine;
     use windows::core::PCWSTR;
@@ -278,6 +278,6 @@ fn encode_png(rgba: &[u8], width: u32, height: u32) -> Vec<u8> {
 }
 
 #[cfg(not(windows))]
-fn extract_icon_png(_path: &Path) -> (String, i32) {
+pub fn extract_icon_png(_path: &Path) -> (String, i32) {
     (String::new(), 48)
 }

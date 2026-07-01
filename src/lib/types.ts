@@ -28,6 +28,16 @@ export interface FenceData {
   icon_paths: string[];
   viewMode?: "grid" | "list";
   style?: FenceStyle;
+  portalPath?: string | null;
+}
+
+export interface PortalItem {
+  name: string;
+  path: string;
+  is_dir: boolean;
+  extension: string;
+  iconData: string;
+  size: number;
 }
 
 export interface AppSettings {

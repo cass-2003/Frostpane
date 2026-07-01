@@ -7,6 +7,7 @@ use desktop::health;
 use desktop::icons::{self, DesktopIcon};
 use desktop::layout;
 use desktop::overlay;
+use desktop::portal;
 use desktop::rules;
 use desktop::search;
 use desktop::settings;
@@ -247,6 +248,7 @@ pub fn run() {
             rules::match_rules,
             health::check_broken_shortcuts,
             health::delete_broken_shortcuts,
+            portal::list_portal_contents,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

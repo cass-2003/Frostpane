@@ -1,5 +1,6 @@
 <script lang="ts">
-  import type { DesktopIcon, FenceData } from "../lib/types";
+  import { invoke } from "@tauri-apps/api/core";
+  import type { DesktopIcon, FenceData, PortalItem } from "../lib/types";
   import { settings } from "../lib/settings.svelte";
   import { t } from "../lib/i18n.svelte";
 
@@ -70,6 +71,35 @@
   let resizeStartH = 0;
 
   let isDragOver = $derived(dragOverFence === fence.id);
+  let isPortal = $derived(!!fence.portalPath);
+  let portalItems = $state<PortalItem[]>([]);
+  let portalLoading = $state(false);
+
+  $effect(() => {
+    if (fence.portalPath) {
+      loadPortalContents(fence.portalPath);
+    }
+  });
+
+  async function loadPortalContents(folderPath: string) {
+    portalLoading = true;
+    try {
+      portalItems = await invoke<PortalItem[]>("list_portal_contents", { folderPath });
+    } catch (e) {
+      console.error("Failed to load portal contents:", e);
+      portalItems = [];
+    } finally {
+      portalLoading = false;
+    }
+  }
+
+  async function openPortalItem(item: PortalItem) {
+    try {
+      await invoke("open_item", { path: item.path });
+    } catch (e) {
+      console.error("Failed to open portal item:", e);
+    }
+  }
 
   let fenceStyleVars = $derived.by(() => {
     const s = fence.style;
@@ -260,7 +290,7 @@
       </span>
     {/if}
 
-    <span class="icon-count">{icons.length}</span>
+    <span class="icon-count">{isPortal ? portalItems.length : icons.length}</span>
 
     <button
       class="collapse-btn"
@@ -281,13 +311,65 @@
     </div>
   {/if}
 
+  <!-- Portal path subtitle -->
+  {#if isPortal && !fence.collapsed}
+    <div class="portal-path-bar">
+      <span class="portal-path" title={fence.portalPath ?? ""}>{fence.portalPath}</span>
+      <button class="portal-action" onclick={() => fence.portalPath && loadPortalContents(fence.portalPath)} title={t.refreshPortal}>↻</button>
+    </div>
+  {/if}
+
   <!-- Body -->
   <div
     class="fence-body"
-    style="height:{fence.collapsed ? 0 : fence.height - 38}px"
+    style="height:{fence.collapsed ? 0 : fence.height - (isPortal ? 60 : 38)}px"
   >
     {#if !fence.collapsed}
-      {#if (fence.viewMode ?? "grid") === "list"}
+      {#if isPortal}
+        {#if portalLoading}
+          <div class="portal-loading">Loading...</div>
+        {:else if (fence.viewMode ?? "grid") === "list"}
+          <div class="fence-list">
+            {#each portalItems as item (item.path)}
+              <button
+                class="list-item"
+                title={item.path}
+                ondblclick={() => openPortalItem(item)}
+              >
+                {#if item.iconData}
+                  <img class="list-icon" src="data:image/png;base64,{item.iconData}" alt={item.name} draggable="false" width="24" height="24" />
+                {:else}
+                  <span class="list-icon-placeholder">{item.is_dir ? "📁" : "📄"}</span>
+                {/if}
+                <span class="list-name">{item.name}</span>
+              </button>
+            {/each}
+          </div>
+        {:else}
+          <div class="fence-icons">
+            {#each portalItems as item (item.path)}
+              <button
+                class="fence-icon"
+                title={item.name}
+                ondblclick={() => openPortalItem(item)}
+              >
+                {#if item.iconData}
+                  <img
+                    class="icon-image"
+                    src="data:image/png;base64,{item.iconData}"
+                    alt={item.name}
+                    draggable="false"
+                    style="width: {settings.iconSize}px; height: {settings.iconSize}px"
+                  />
+                {:else}
+                  <div class="icon-placeholder" style="width: {settings.iconSize}px; height: {settings.iconSize}px">{item.is_dir ? "📁" : "📄"}</div>
+                {/if}
+                {#if !settings.hideIconLabels}<span class="icon-label">{item.name}</span>{/if}
+              </button>
+            {/each}
+          </div>
+        {/if}
+      {:else if (fence.viewMode ?? "grid") === "list"}
         <div class="fence-list">
           {#each icons as icon (icon.path)}
             <button
@@ -697,5 +779,52 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .portal-path-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 8px;
+    height: 22px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.15);
+    flex-shrink: 0;
+  }
+
+  .portal-path {
+    flex: 1;
+    font-size: 10px;
+    color: var(--text-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  .portal-action {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 0 2px;
+    border-radius: 3px;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: color 0.15s, background 0.15s;
+  }
+
+  .portal-action:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .portal-loading {
+    display: grid;
+    place-items: center;
+    height: 100%;
+    color: var(--text-dim);
+    font-size: 12px;
   }
 </style>

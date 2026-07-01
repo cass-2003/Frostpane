@@ -37,6 +37,8 @@ pub struct FenceLayout {
     pub view_mode: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub style: Option<FenceStyle>,
+    #[serde(rename = "portalPath", skip_serializing_if = "Option::is_none", default)]
+    pub portal_path: Option<String>,
 }
 
 fn config_dir() -> PathBuf {

@@ -25,6 +25,7 @@
 
   const items: MenuItem[] = $derived([
     { id: "new_fence", label: t.newFence },
+    { id: "new_portal", label: t.newPortal },
     { id: "sep1", label: "", separator: true },
     { id: "show_all_fences", label: t.showAllFences },
     { id: "hide_all_fences", label: t.hideAllFences },

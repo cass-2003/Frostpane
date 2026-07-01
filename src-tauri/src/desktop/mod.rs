@@ -5,6 +5,7 @@ pub mod health;
 pub mod icons;
 pub mod layout;
 pub mod overlay;
+pub mod portal;
 pub mod rules;
 pub mod search;
 pub mod settings;
