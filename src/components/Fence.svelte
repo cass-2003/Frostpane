@@ -71,7 +71,7 @@
 
   let isDragOver = $derived(dragOverFence === fence.id);
 
-  let fenceStyleVars = $derived(() => {
+  let fenceStyleVars = $derived.by(() => {
     const s = fence.style;
     const parts: string[] = [];
     if (s?.bgColor) parts.push(`--fence-bg:${s.bgColor}`);
@@ -226,7 +226,7 @@
   class:drag-over={isDragOver}
   class:is-moving={moving && didMove}
   class:is-resizing={resizing}
-  style="left:{fence.x}px; top:{fence.y}px; width:{fence.width}px;{fenceStyleVars()}"
+  style="left:{fence.x}px; top:{fence.y}px; width:{fence.width}px;{fenceStyleVars}"
   data-fence-id={fence.id}
 >
   <!-- Header -->

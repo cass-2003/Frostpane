@@ -1,7 +1,7 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import { onMount } from "svelte";
-  import type { DesktopIcon, FenceData } from "../lib/types";
+  import type { DesktopIcon, FenceData, FenceStyle } from "../lib/types";
   import Fence from "./Fence.svelte";
   import ContextMenu from "./ContextMenu.svelte";
   import DesktopMenu from "./DesktopMenu.svelte";
@@ -12,6 +12,7 @@
   import ArchiveDialog from "./ArchiveDialog.svelte";
   import Onboarding from "./Onboarding.svelte";
   import RulesEditor from "./RulesEditor.svelte";
+  import FenceStyleEditor from "./FenceStyleEditor.svelte";
   import { settings, loadSettings } from "../lib/settings.svelte";
   import { t, initLocale } from "../lib/i18n.svelte";
 
@@ -75,6 +76,12 @@
 
   // Rules editor
   let rulesEditorVisible = $state(false);
+
+  // Fence style editor
+  let styleEditorVisible = $state(false);
+  let styleEditorFenceId = $state("");
+  let styleEditorX = $state(0);
+  let styleEditorY = $state(0);
 
   // Scene manager
   let sceneManagerVisible = $state(false);
@@ -425,7 +432,10 @@
         saveFences();
         break;
       case "appearance":
-        console.log("[FenceMenu] Appearance placeholder for fence:", fenceId);
+        styleEditorFenceId = fenceId;
+        styleEditorX = fenceMenuX;
+        styleEditorY = fenceMenuY;
+        styleEditorVisible = true;
         break;
       case "archive":
         handleArchivePreview(fenceId);
@@ -685,6 +695,11 @@
   function iconsForFence(fenceId: string): DesktopIcon[] {
     return icons.filter((ic) => ic.fence_id === fenceId);
   }
+
+  function handleFenceStyleChange(fenceId: string, style: FenceStyle) {
+    fences = fences.map((f) => f.id === fenceId ? { ...f, style: Object.keys(style).length ? style : undefined } : f);
+    saveFences();
+  }
 </script>
 
 <svelte:window onkeydown={(e) => {
@@ -836,6 +851,16 @@
   bind:visible={rulesEditorVisible}
   {fences}
   onclose={() => (rulesEditorVisible = false)}
+/>
+
+<!-- Fence style editor -->
+<FenceStyleEditor
+  bind:visible={styleEditorVisible}
+  x={styleEditorX}
+  y={styleEditorY}
+  style={fences.find(f => f.id === styleEditorFenceId)?.style ?? {}}
+  onchange={(s) => handleFenceStyleChange(styleEditorFenceId, s)}
+  onclose={() => (styleEditorVisible = false)}
 />
 
 <!-- Archive confirmation dialog -->
