@@ -8,8 +8,16 @@
   import FenceMenu from "./FenceMenu.svelte";
   import Settings from "./Settings.svelte";
   import SceneManager from "./SceneManager.svelte";
+  import SearchBar from "./SearchBar.svelte";
+  import ArchiveDialog from "./ArchiveDialog.svelte";
   import { settings, loadSettings } from "../lib/settings.svelte";
   import { t, initLocale } from "../lib/i18n.svelte";
+
+  interface ArchivePreview {
+    moves: Array<{ original_path: string; archived_path: string; file_name: string }>;
+    target_dir: string;
+    file_count: number;
+  }
 
   let gridW = $derived(settings.iconSize + 32);
   let gridH = $derived(settings.iconSize + 52);
@@ -65,6 +73,14 @@
 
   // Scene manager
   let sceneManagerVisible = $state(false);
+
+  // Search bar
+  let searchVisible = $state(false);
+
+  // Archive dialog state
+  let archiveDialogVisible = $state(false);
+  let archivePreview = $state<ArchivePreview | null>(null);
+  let archiveTargetFenceId = $state("");
 
   // Fence context menu state
   let fenceMenuVisible = $state(false);
@@ -366,12 +382,66 @@
         saveAll();
         break;
       }
+      case "toggle_view":
+        fences = fences.map(f =>
+          f.id === fenceId
+            ? { ...f, view_mode: (f.view_mode === "list" ? "grid" : "list") }
+            : f
+        );
+        saveFences();
+        break;
       case "appearance":
         console.log("[FenceMenu] Appearance placeholder for fence:", fenceId);
+        break;
+      case "archive":
+        handleArchivePreview(fenceId);
         break;
       case "delete":
         handleFenceDelete(fenceId);
         break;
+    }
+  }
+
+  async function handleArchivePreview(fenceId: string) {
+    const fence = fences.find((f) => f.id === fenceId);
+    if (!fence) return;
+    const fenceIcons = icons.filter((ic) => ic.fence_id === fenceId);
+    const paths = fenceIcons.map((ic) => ic.path);
+    if (paths.length === 0) return;
+    try {
+      const preview = await invoke<ArchivePreview>("preview_archive", {
+        fenceTitle: fence.title,
+        iconPaths: paths,
+      });
+      if (preview.file_count === 0) return;
+      archivePreview = preview;
+      archiveTargetFenceId = fenceId;
+      archiveDialogVisible = true;
+    } catch (e) {
+      console.error("Archive preview failed:", e);
+    }
+  }
+
+  async function handleArchiveConfirm() {
+    if (!archivePreview || !archiveTargetFenceId) return;
+    const fence = fences.find((f) => f.id === archiveTargetFenceId);
+    if (!fence) return;
+    const fenceIcons = icons.filter((ic) => ic.fence_id === archiveTargetFenceId);
+    const paths = fenceIcons.map((ic) => ic.path);
+    try {
+      await invoke("execute_archive", {
+        fenceTitle: fence.title,
+        iconPaths: paths,
+      });
+      const archivedPaths = new Set(archivePreview.moves.map((m) => m.original_path));
+      icons = icons.filter((ic) => !archivedPaths.has(ic.path));
+      await saveAll();
+    } catch (e) {
+      console.error("Archive failed:", e);
+    } finally {
+      archiveDialogVisible = false;
+      archivePreview = null;
+      archiveTargetFenceId = "";
     }
   }
 
@@ -575,6 +645,13 @@
   }
 </script>
 
+<svelte:window onkeydown={(e) => {
+  if (e.altKey && e.code === "Space") {
+    e.preventDefault();
+    searchVisible = !searchVisible;
+  }
+}} />
+
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   class="desktop-overlay"
@@ -678,6 +755,7 @@
   x={fenceMenuX}
   y={fenceMenuY}
   fenceId={fenceMenuTargetId}
+  viewMode={fences.find(f => f.id === fenceMenuTargetId)?.view_mode ?? "grid"}
   onclose={() => (fenceMenuVisible = false)}
   onaction={handleFenceMenuAction}
 />
@@ -695,6 +773,12 @@
 <Settings
   bind:visible={settingsVisible}
   onclose={() => (settingsVisible = false)}
+/>
+
+<!-- Search bar (Alt+Space) -->
+<SearchBar
+  bind:visible={searchVisible}
+  onclose={() => (searchVisible = false)}
 />
 
 <!-- Scene manager -->

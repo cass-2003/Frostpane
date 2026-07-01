@@ -1,10 +1,12 @@
 mod desktop;
 
+use desktop::archive;
 use desktop::autostart;
 use desktop::context_menu;
 use desktop::icons::{self, DesktopIcon};
 use desktop::layout;
 use desktop::overlay;
+use desktop::search;
 use desktop::settings;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -227,6 +229,11 @@ pub fn run() {
             autostart::set_autostart,
             settings::save_app_settings,
             settings::load_app_settings,
+            search::search_files,
+            archive::preview_archive,
+            archive::execute_archive,
+            archive::undo_archive,
+            archive::list_archive_history,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
