@@ -37,6 +37,32 @@ type Translations = {
   archiveSummary: (count: number, dir: string) => string;
   archiveAction: string;
   cancel: string;
+  // ContextMenu (icon right-click)
+  ctxOpen: string;
+  ctxRunAsAdmin: string;
+  ctxOpenLocation: string;
+  ctxRename: string;
+  ctxDelete: string;
+  ctxCopyPath: string;
+  ctxMoreActions: string;
+  // SceneManager
+  scenesTitle: string;
+  saveScene: string;
+  sceneName: string;
+  noScenes: string;
+  // Onboarding
+  welcomeTitle: string;
+  welcomeDesc: string;
+  getStarted: string;
+  chooseLayout: string;
+  templateWork: string;
+  templatePlay: string;
+  templateAllInOne: string;
+  skipSetup: string;
+  tipRightClick: string;
+  tipDragIcons: string;
+  tipDoubleClick: string;
+  done: string;
 };
 
 const en: Translations = {
@@ -74,6 +100,29 @@ const en: Translations = {
   archiveSummary: (count, dir) => `Move ${count} file${count === 1 ? "" : "s"} to ${dir}`,
   archiveAction: "Archive",
   cancel: "Cancel",
+  ctxOpen: "Open",
+  ctxRunAsAdmin: "Run as administrator",
+  ctxOpenLocation: "Open file location",
+  ctxRename: "Rename",
+  ctxDelete: "Delete",
+  ctxCopyPath: "Copy path",
+  ctxMoreActions: "More actions...",
+  scenesTitle: "Scenes",
+  saveScene: "Save Current",
+  sceneName: "Scene name...",
+  noScenes: "No saved scenes",
+  welcomeTitle: "Welcome to Frostpane",
+  welcomeDesc: "Organize your desktop with beautiful glass fences",
+  getStarted: "Get Started",
+  chooseLayout: "Choose a layout",
+  templateWork: "Work",
+  templatePlay: "Play",
+  templateAllInOne: "All-in-one",
+  skipSetup: "Skip — I'll set up manually",
+  tipRightClick: "Right-click desktop → New Fence",
+  tipDragIcons: "Drag icons into fences",
+  tipDoubleClick: "Double-click desktop to show/hide",
+  done: "Done!",
 };
 
 const zh: Translations = {
@@ -111,6 +160,29 @@ const zh: Translations = {
   archiveSummary: (count, dir) => `将 ${count} 个文件移动到 ${dir}`,
   archiveAction: "归档",
   cancel: "取消",
+  ctxOpen: "打开",
+  ctxRunAsAdmin: "以管理员身份运行",
+  ctxOpenLocation: "打开文件位置",
+  ctxRename: "重命名",
+  ctxDelete: "删除",
+  ctxCopyPath: "复制路径",
+  ctxMoreActions: "更多操作...",
+  scenesTitle: "场景",
+  saveScene: "保存当前",
+  sceneName: "场景名称...",
+  noScenes: "暂无已保存的场景",
+  welcomeTitle: "欢迎使用方寸",
+  welcomeDesc: "用毛玻璃分区整理你的桌面",
+  getStarted: "开始使用",
+  chooseLayout: "选择布局模板",
+  templateWork: "工作",
+  templatePlay: "娱乐",
+  templateAllInOne: "全能",
+  skipSetup: "跳过 — 稍后手动设置",
+  tipRightClick: "右键桌面 → 新建分区",
+  tipDragIcons: "拖拽图标进入分区",
+  tipDoubleClick: "双击桌面显示/隐藏分区",
+  done: "完成！",
 };
 
 const LOCALES: Record<Locale, Translations> = { en, zh };

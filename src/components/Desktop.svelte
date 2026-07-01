@@ -10,6 +10,7 @@
   import SceneManager from "./SceneManager.svelte";
   import SearchBar from "./SearchBar.svelte";
   import ArchiveDialog from "./ArchiveDialog.svelte";
+  import Onboarding from "./Onboarding.svelte";
   import { settings, loadSettings } from "../lib/settings.svelte";
   import { t, initLocale } from "../lib/i18n.svelte";
 
@@ -77,6 +78,9 @@
   // Search bar
   let searchVisible = $state(false);
 
+  // Onboarding
+  let onboardingVisible = $state(false);
+
   // Archive dialog state
   let archiveDialogVisible = $state(false);
   let archivePreview = $state<ArchivePreview | null>(null);
@@ -114,6 +118,9 @@
           fence_id: fenceMap.get(ic.path) ?? null,
         }));
         fences = loadedFences;
+      }
+      if (fences.length === 0) {
+        onboardingVisible = true;
       }
     } catch (e) {
       error = String(e);
@@ -599,6 +606,11 @@
     saveFences();
   }
 
+  function handleOnboardingFences(newFences: FenceData[]) {
+    fences = [...fences, ...newFences];
+    saveFences();
+  }
+
   function handleIconDeleted(path: string) {
     icons = icons.filter((ic) => ic.path !== path);
     saveAll();
@@ -795,6 +807,13 @@
   preview={archivePreview}
   onconfirm={handleArchiveConfirm}
   oncancel={() => { archiveDialogVisible = false; archivePreview = null; archiveTargetFenceId = ""; }}
+/>
+
+<!-- First-run onboarding -->
+<Onboarding
+  bind:visible={onboardingVisible}
+  onclose={() => (onboardingVisible = false)}
+  oncreatefences={handleOnboardingFences}
 />
 
 <style>
