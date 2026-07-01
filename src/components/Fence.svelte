@@ -10,12 +10,13 @@
     onrename: (id: string, title: string) => void;
     onemoji: (id: string, emoji: string) => void;
     oncollapse: (id: string) => void;
-    ondelete: (id: string) => void;
+    onfencemenu: (e: MouseEvent, id: string) => void;
     oniconclick: (icon: DesktopIcon) => void;
     onicondblclick: (icon: DesktopIcon) => void;
     oniconcontextmenu: (e: MouseEvent, icon: DesktopIcon) => void;
     onicondragstart: (e: PointerEvent, icon: DesktopIcon) => void;
     onsave: () => void;
+    renameToken?: number;
   }
 
   let {
@@ -27,12 +28,13 @@
     onrename,
     onemoji,
     oncollapse,
-    ondelete,
+    onfencemenu,
     oniconclick,
     onicondblclick,
     oniconcontextmenu,
     onicondragstart,
     onsave,
+    renameToken,
   }: Props = $props();
 
   const DRAG_THRESHOLD = 5;
@@ -66,6 +68,10 @@
   let resizeStartH = 0;
 
   let isDragOver = $derived(dragOverFence === fence.id);
+
+  $effect(() => {
+    if (renameToken && renameToken > 0) startRename();
+  });
 
   function startMove(e: PointerEvent) {
     if (e.button !== 0 || editing) return;
@@ -193,7 +199,7 @@
   function handleHeaderContext(e: MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    ondelete(fence.id);
+    onfencemenu(e, fence.id);
   }
 </script>
 

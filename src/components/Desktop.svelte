@@ -5,6 +5,7 @@
   import Fence from "./Fence.svelte";
   import ContextMenu from "./ContextMenu.svelte";
   import DesktopMenu from "./DesktopMenu.svelte";
+  import FenceMenu from "./FenceMenu.svelte";
   import Settings from "./Settings.svelte";
 
   const GRID_W = 90;
@@ -49,6 +50,15 @@
 
   // Settings panel
   let settingsVisible = $state(false);
+
+  // Fence context menu state
+  let fenceMenuVisible = $state(false);
+  let fenceMenuX = $state(0);
+  let fenceMenuY = $state(0);
+  let fenceMenuTargetId = $state("");
+
+  // Per-fence rename trigger tokens
+  let fenceRenameTokens = $state<Record<string, number>>({});
 
   onMount(async () => {
     try {
@@ -247,6 +257,52 @@
     saveAll();
   }
 
+  function handleFenceMenuShow(e: MouseEvent, id: string) {
+    fenceMenuX = e.clientX;
+    fenceMenuY = e.clientY;
+    fenceMenuTargetId = id;
+    fenceMenuVisible = true;
+  }
+
+  function handleFenceMenuAction(id: string, fenceId: string) {
+    switch (id) {
+      case "rename":
+        fenceRenameTokens = {
+          ...fenceRenameTokens,
+          [fenceId]: (fenceRenameTokens[fenceId] ?? 0) + 1,
+        };
+        break;
+      case "sort_name": {
+        const others = icons.filter((ic) => ic.fence_id !== fenceId);
+        const sorted = icons
+          .filter((ic) => ic.fence_id === fenceId)
+          .sort((a, b) => a.name.localeCompare(b.name));
+        icons = [...others, ...sorted];
+        saveAll();
+        break;
+      }
+      case "sort_type": {
+        const others = icons.filter((ic) => ic.fence_id !== fenceId);
+        const sorted = icons
+          .filter((ic) => ic.fence_id === fenceId)
+          .sort((a, b) => {
+            const extA = a.name.split(".").pop()?.toLowerCase() ?? "";
+            const extB = b.name.split(".").pop()?.toLowerCase() ?? "";
+            return extA.localeCompare(extB) || a.name.localeCompare(b.name);
+          });
+        icons = [...others, ...sorted];
+        saveAll();
+        break;
+      }
+      case "appearance":
+        console.log("[FenceMenu] Appearance placeholder for fence:", fenceId);
+        break;
+      case "delete":
+        handleFenceDelete(fenceId);
+        break;
+    }
+  }
+
   // ── Icon interactions within fences ──
 
   function handleFenceIconDragStart(e: PointerEvent, icon: DesktopIcon) {
@@ -436,12 +492,13 @@
         onrename={handleFenceRename}
         onemoji={handleFenceEmoji}
         oncollapse={handleFenceCollapse}
-        ondelete={handleFenceDelete}
+        onfencemenu={handleFenceMenuShow}
         oniconclick={handleFenceIconClick}
         onicondblclick={handleFenceIconDblClick}
         oniconcontextmenu={handleFenceIconContext}
         onicondragstart={handleFenceIconDragStart}
         onsave={saveFences}
+        renameToken={fenceRenameTokens[fence.id] ?? 0}
       />
     {/each}
     {/if}
@@ -488,6 +545,16 @@
   targetName={ctxName}
   onclose={() => (ctxVisible = false)}
   ondeleted={handleIconDeleted}
+/>
+
+<!-- Fence context menu -->
+<FenceMenu
+  bind:visible={fenceMenuVisible}
+  x={fenceMenuX}
+  y={fenceMenuY}
+  fenceId={fenceMenuTargetId}
+  onclose={() => (fenceMenuVisible = false)}
+  onaction={handleFenceMenuAction}
 />
 
 <!-- Desktop context menu -->
