@@ -31,6 +31,12 @@ type Translations = {
   expand: string;
   collapse: string;
   changeIcon: string;
+  gridView: string;
+  listView: string;
+  archiveToFolder: string;
+  archiveSummary: (count: number, dir: string) => string;
+  archiveAction: string;
+  cancel: string;
 };
 
 const en: Translations = {
@@ -62,6 +68,12 @@ const en: Translations = {
   expand: "Expand",
   collapse: "Collapse",
   changeIcon: "Change icon",
+  gridView: "Grid View",
+  listView: "List View",
+  archiveToFolder: "Archive to Folder",
+  archiveSummary: (count, dir) => `Move ${count} file${count === 1 ? "" : "s"} to ${dir}`,
+  archiveAction: "Archive",
+  cancel: "Cancel",
 };
 
 const zh: Translations = {
@@ -93,6 +105,12 @@ const zh: Translations = {
   expand: "展开",
   collapse: "折叠",
   changeIcon: "更换图标",
+  gridView: "网格视图",
+  listView: "列表视图",
+  archiveToFolder: "归档到文件夹",
+  archiveSummary: (count, dir) => `将 ${count} 个文件移动到 ${dir}`,
+  archiveAction: "归档",
+  cancel: "取消",
 };
 
 const LOCALES: Record<Locale, Translations> = { en, zh };

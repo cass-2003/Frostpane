@@ -277,33 +277,57 @@
     style="height:{fence.collapsed ? 0 : fence.height - 38}px"
   >
     {#if !fence.collapsed}
-      <div class="fence-icons">
-        {#each icons as icon (icon.path)}
-          <button
-            class="fence-icon"
-            title={icon.name}
-            onpointerdown={(e) => onIconPointerDown(e, icon)}
-            onpointermove={onIconPointerMove}
-            onpointerup={onIconPointerUp}
-            onclick={() => { if (!iconDidDrag) oniconclick(icon); }}
-            ondblclick={() => { if (!iconDidDrag) onicondblclick(icon); }}
-            oncontextmenu={(e) => oniconcontextmenu(e, icon)}
-          >
-            {#if icon.icon_data}
-              <img
-                class="icon-image"
-                src="data:image/png;base64,{icon.icon_data}"
-                alt={icon.name}
-                draggable="false"
-                style="width: {settings.iconSize}px; height: {settings.iconSize}px"
-              />
-            {:else}
-              <div class="icon-placeholder" style="width: {settings.iconSize}px; height: {settings.iconSize}px">📄</div>
-            {/if}
-            <span class="icon-label">{icon.name}</span>
-          </button>
-        {/each}
-      </div>
+      {#if (fence.viewMode ?? "grid") === "list"}
+        <div class="fence-list">
+          {#each icons as icon (icon.path)}
+            <button
+              class="list-item"
+              title={icon.name}
+              onpointerdown={(e) => onIconPointerDown(e, icon)}
+              onpointermove={onIconPointerMove}
+              onpointerup={onIconPointerUp}
+              onclick={() => { if (!iconDidDrag) oniconclick(icon); }}
+              ondblclick={() => { if (!iconDidDrag) onicondblclick(icon); }}
+              oncontextmenu={(e) => oniconcontextmenu(e, icon)}
+            >
+              {#if icon.icon_data}
+                <img class="list-icon" src="data:image/png;base64,{icon.icon_data}" alt={icon.name} draggable="false" width="24" height="24" />
+              {:else}
+                <span class="list-icon-placeholder">📄</span>
+              {/if}
+              <span class="list-name">{icon.name}</span>
+            </button>
+          {/each}
+        </div>
+      {:else}
+        <div class="fence-icons">
+          {#each icons as icon (icon.path)}
+            <button
+              class="fence-icon"
+              title={icon.name}
+              onpointerdown={(e) => onIconPointerDown(e, icon)}
+              onpointermove={onIconPointerMove}
+              onpointerup={onIconPointerUp}
+              onclick={() => { if (!iconDidDrag) oniconclick(icon); }}
+              ondblclick={() => { if (!iconDidDrag) onicondblclick(icon); }}
+              oncontextmenu={(e) => oniconcontextmenu(e, icon)}
+            >
+              {#if icon.icon_data}
+                <img
+                  class="icon-image"
+                  src="data:image/png;base64,{icon.icon_data}"
+                  alt={icon.name}
+                  draggable="false"
+                  style="width: {settings.iconSize}px; height: {settings.iconSize}px"
+                />
+              {:else}
+                <div class="icon-placeholder" style="width: {settings.iconSize}px; height: {settings.iconSize}px">📄</div>
+              {/if}
+              <span class="icon-label">{icon.name}</span>
+            </button>
+          {/each}
+        </div>
+      {/if}
     {/if}
   </div>
 
@@ -598,5 +622,70 @@
 
   .resize-handle:hover::after {
     border-color: var(--accent);
+  }
+
+  .fence-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 4px;
+    height: 100%;
+    overflow-y: auto;
+  }
+
+  .fence-list::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .fence-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .fence-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 2px;
+  }
+
+  .list-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    font-size: 12px;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: background 0.1s;
+  }
+
+  .list-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .list-icon {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    object-fit: contain;
+    pointer-events: none;
+  }
+
+  .list-icon-placeholder {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    font-size: 14px;
+  }
+
+  .list-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 </style>

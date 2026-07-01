@@ -19,6 +19,7 @@ export interface FenceData {
   height: number;
   collapsed: boolean;
   icon_paths: string[];
+  viewMode?: "grid" | "list";
 }
 
 export interface AppSettings {

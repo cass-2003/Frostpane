@@ -6,11 +6,12 @@
     x: number;
     y: number;
     fenceId: string;
+    viewMode?: "grid" | "list";
     onclose: () => void;
     onaction: (id: string, fenceId: string) => void;
   }
 
-  let { visible = $bindable(false), x, y, fenceId, onclose, onaction }: Props = $props();
+  let { visible = $bindable(false), x, y, fenceId, viewMode = "grid", onclose, onaction }: Props = $props();
 
   let menuEl: HTMLDivElement | undefined = $state();
   let adjustedX = $state(0);
@@ -67,9 +68,15 @@
       <button class="menu-item" role="menuitem" onclick={() => act("sort_type")}>
         <span class="item-label">{t.sortType}</span>
       </button>
+      <button class="menu-item" role="menuitem" onclick={() => act("toggle_view")}>
+        <span class="item-label">{viewMode === "list" ? t.gridView ?? "Grid View" : t.listView ?? "List View"}</span>
+      </button>
       <div class="menu-separator"></div>
       <button class="menu-item" role="menuitem" onclick={() => act("appearance")}>
         <span class="item-label">{t.appearance}</span>
+      </button>
+      <button class="menu-item" role="menuitem" onclick={() => act("archive")}>
+        <span class="item-label">{t.archiveToFolder}</span>
       </button>
       <div class="menu-separator"></div>
       <button class="menu-item danger" role="menuitem" onclick={() => act("delete")}>

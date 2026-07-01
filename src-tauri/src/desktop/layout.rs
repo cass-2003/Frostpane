@@ -21,6 +21,8 @@ pub struct FenceLayout {
     pub height: f64,
     pub collapsed: bool,
     pub icon_paths: Vec<String>,
+    #[serde(rename = "viewMode")]
+    pub view_mode: Option<String>,
 }
 
 fn config_dir() -> PathBuf {
