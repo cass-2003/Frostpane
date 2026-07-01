@@ -34,6 +34,7 @@ type Translations = {
   gridView: string;
   listView: string;
   hideLabels: string;
+  autoColor: string;
   archiveToFolder: string;
   archiveSummary: (count: number, dir: string) => string;
   archiveAction: string;
@@ -80,6 +81,11 @@ type Translations = {
   ruleTarget: string;
   deleteRule: string;
   noRules: string;
+  newPortal: string;
+  portalPath: string;
+  enterFolderPath: string;
+  refreshPortal: string;
+  openInExplorer: string;
 };
 
 const en: Translations = {
@@ -114,6 +120,7 @@ const en: Translations = {
   gridView: "Grid View",
   listView: "List View",
   hideLabels: "Hide icon labels",
+  autoColor: "Auto Color",
   archiveToFolder: "Archive to Folder",
   archiveSummary: (count, dir) => `Move ${count} file${count === 1 ? "" : "s"} to ${dir}`,
   archiveAction: "Archive",
@@ -155,6 +162,11 @@ const en: Translations = {
   ruleTarget: "Target fence",
   deleteRule: "Delete",
   noRules: "No rules defined",
+  newPortal: "New Portal Fence",
+  portalPath: "Folder path",
+  enterFolderPath: "Enter folder path...",
+  refreshPortal: "Refresh",
+  openInExplorer: "Open in Explorer",
 };
 
 const zh: Translations = {
@@ -189,6 +201,7 @@ const zh: Translations = {
   gridView: "网格视图",
   listView: "列表视图",
   hideLabels: "隐藏图标名称",
+  autoColor: "自动取色",
   archiveToFolder: "归档到文件夹",
   archiveSummary: (count, dir) => `将 ${count} 个文件移动到 ${dir}`,
   archiveAction: "归档",
@@ -230,6 +243,11 @@ const zh: Translations = {
   ruleTarget: "目标分区",
   deleteRule: "删除",
   noRules: "暂无规则",
+  newPortal: "新建映射分区",
+  portalPath: "文件夹路径",
+  enterFolderPath: "输入文件夹路径...",
+  refreshPortal: "刷新",
+  openInExplorer: "在资源管理器中打开",
 };
 
 const LOCALES: Record<Locale, Translations> = { en, zh };

@@ -75,6 +75,9 @@
       <button class="menu-item" role="menuitem" onclick={() => act("appearance")}>
         <span class="item-label">{t.appearance}</span>
       </button>
+      <button class="menu-item" role="menuitem" onclick={() => act("auto_color")}>
+        <span class="item-label">{t.autoColor}</span>
+      </button>
       <button class="menu-item" role="menuitem" onclick={() => act("archive")}>
         <span class="item-label">{t.archiveToFolder}</span>
       </button>

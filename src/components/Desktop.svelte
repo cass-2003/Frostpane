@@ -437,6 +437,9 @@
         styleEditorY = fenceMenuY;
         styleEditorVisible = true;
         break;
+      case "auto_color":
+        handleAutoColor(fenceId);
+        break;
       case "archive":
         handleArchivePreview(fenceId);
         break;
@@ -444,6 +447,19 @@
         handleFenceDelete(fenceId);
         break;
     }
+  }
+
+  async function handleAutoColor(fenceId: string) {
+    const { computeFenceDominantColor } = await import("../lib/color");
+    const fenceIcons = icons.filter((ic) => ic.fence_id === fenceId);
+    const iconDataList = fenceIcons.map((ic) => ic.icon_data);
+    const bgColor = await computeFenceDominantColor(iconDataList);
+    fences = fences.map((f) =>
+      f.id === fenceId
+        ? { ...f, style: { ...f.style, bgColor } }
+        : f
+    );
+    saveFences();
   }
 
   async function handleArchivePreview(fenceId: string) {
@@ -580,6 +596,9 @@
       case "new_fence":
         createFence(deskMenuX, deskMenuY);
         break;
+      case "new_portal":
+        createPortalFence(deskMenuX, deskMenuY);
+        break;
       case "show_all_fences":
         fences = fences.map((f) => ({ ...f, collapsed: false }));
         saveFences();
@@ -641,6 +660,26 @@
       height: DEFAULT_FENCE_H,
       collapsed: false,
       icon_paths: [],
+    };
+    fences = [...fences, newFence];
+    saveFences();
+  }
+
+  function createPortalFence(x: number, y: number) {
+    const folderPath = prompt(t.enterFolderPath);
+    if (!folderPath) return;
+    const name = folderPath.split(/[\\/]/).pop() || "Portal";
+    const newFence: FenceData = {
+      id: generateId(),
+      title: name,
+      emoji: "🔗",
+      x,
+      y,
+      width: DEFAULT_FENCE_W,
+      height: DEFAULT_FENCE_H,
+      collapsed: false,
+      icon_paths: [],
+      portalPath: folderPath,
     };
     fences = [...fences, newFence];
     saveFences();
