@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { DesktopIcon, FenceData } from "../lib/types";
   import { settings } from "../lib/settings.svelte";
+  import { t } from "../lib/i18n.svelte";
 
   interface Props {
     fence: FenceData;
@@ -228,7 +229,7 @@
     ondblclick={() => oncollapse(fence.id)}
     oncontextmenu={handleHeaderContext}
   >
-    <button class="emoji-btn" onclick={toggleEmojiPicker} title="Change icon">
+    <button class="emoji-btn" onclick={toggleEmojiPicker} title={t.changeIcon}>
       {fence.emoji}
     </button>
 
@@ -254,7 +255,7 @@
     <button
       class="collapse-btn"
       onclick={(e) => { e.stopPropagation(); oncollapse(fence.id); }}
-      title={fence.collapsed ? "Expand" : "Collapse"}
+      title={fence.collapsed ? t.expand : t.collapse}
     >
       {fence.collapsed ? "▸" : "▾"}
     </button>

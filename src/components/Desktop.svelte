@@ -7,7 +7,9 @@
   import DesktopMenu from "./DesktopMenu.svelte";
   import FenceMenu from "./FenceMenu.svelte";
   import Settings from "./Settings.svelte";
+  import SceneManager from "./SceneManager.svelte";
   import { settings, loadSettings } from "../lib/settings.svelte";
+  import { t, initLocale } from "../lib/i18n.svelte";
 
   let gridW = $derived(settings.iconSize + 32);
   let gridH = $derived(settings.iconSize + 52);
@@ -61,6 +63,9 @@
   // Settings panel
   let settingsVisible = $state(false);
 
+  // Scene manager
+  let sceneManagerVisible = $state(false);
+
   // Fence context menu state
   let fenceMenuVisible = $state(false);
   let fenceMenuX = $state(0);
@@ -71,7 +76,8 @@
   let fenceRenameTokens = $state<Record<string, number>>({});
 
   onMount(async () => {
-    loadSettings();
+    initLocale();
+    await loadSettings();
     try {
       const [loadedIcons, loadedFences] = await Promise.all([
         invoke<DesktopIcon[]>("get_desktop_icons"),
@@ -475,13 +481,42 @@
       case "settings":
         settingsVisible = true;
         break;
+      case "scenes":
+        sceneManagerVisible = true;
+        break;
     }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function handleSceneLoad(scene: any) {
+    const positions = scene.icon_positions as Array<{ path: string; x: number; y: number }>;
+    const posMap = new Map(positions.map((p) => [p.path, p]));
+    icons = icons.map((ic) => {
+      const pos = posMap.get(ic.path) as { path: string; x: number; y: number } | undefined;
+      return pos ? { ...ic, x: pos.x, y: pos.y, fence_id: null } : ic;
+    });
+
+    if (scene.fences.length > 0) {
+      fences = scene.fences;
+      const fenceMap = new Map<string, string>();
+      for (const f of fences) {
+        for (const p of (f as FenceData).icon_paths) {
+          fenceMap.set(p, f.id);
+        }
+      }
+      icons = icons.map((ic) => ({
+        ...ic,
+        fence_id: fenceMap.get(ic.path) ?? ic.fence_id ?? null,
+      }));
+    }
+
+    saveAll();
   }
 
   function createFence(x: number, y: number) {
     const newFence: FenceData = {
       id: generateId(),
-      title: "New Fence",
+      title: t.newFenceTitle,
       emoji: "📁",
       x,
       y,
@@ -554,7 +589,7 @@
   {#if loading}
     <div class="status-pill">
       <span class="spinner">❄</span>
-      <span>Frostpane loading...</span>
+      <span>{t.loading}</span>
     </div>
   {:else if error}
     <div class="status-pill error">
@@ -621,7 +656,7 @@
     {/if}
 
     <div class="status-pill">
-      ❄ Frostpane · {fences.length} fences · {icons.length} icons
+      {t.statusBar(fences.length, icons.length)}
     </div>
   {/if}
 </div>
@@ -660,6 +695,14 @@
 <Settings
   bind:visible={settingsVisible}
   onclose={() => (settingsVisible = false)}
+/>
+
+<!-- Scene manager -->
+<SceneManager
+  bind:visible={sceneManagerVisible}
+  onclose={() => (sceneManagerVisible = false)}
+  onsave={saveAll}
+  onload={handleSceneLoad}
 />
 
 <style>
