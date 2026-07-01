@@ -732,7 +732,7 @@
         {:else}
           <div class="icon-placeholder" style="width: {settings.iconSize}px; height: {settings.iconSize}px">📄</div>
         {/if}
-        <span class="icon-label">{icon.name}</span>
+        {#if !settings.hideIconLabels}<span class="icon-label">{icon.name}</span>{/if}
       </button>
     {/each}
     {/if}

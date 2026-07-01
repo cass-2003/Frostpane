@@ -33,6 +33,7 @@ type Translations = {
   changeIcon: string;
   gridView: string;
   listView: string;
+  hideLabels: string;
   archiveToFolder: string;
   archiveSummary: (count: number, dir: string) => string;
   archiveAction: string;
@@ -96,6 +97,7 @@ const en: Translations = {
   changeIcon: "Change icon",
   gridView: "Grid View",
   listView: "List View",
+  hideLabels: "Hide icon labels",
   archiveToFolder: "Archive to Folder",
   archiveSummary: (count, dir) => `Move ${count} file${count === 1 ? "" : "s"} to ${dir}`,
   archiveAction: "Archive",
@@ -156,6 +158,7 @@ const zh: Translations = {
   changeIcon: "更换图标",
   gridView: "网格视图",
   listView: "列表视图",
+  hideLabels: "隐藏图标名称",
   archiveToFolder: "归档到文件夹",
   archiveSummary: (count, dir) => `将 ${count} 个文件移动到 ${dir}`,
   archiveAction: "归档",

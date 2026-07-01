@@ -104,6 +104,18 @@
 
           <section class="settings-section">
             <h3>{t.appearanceSection}</h3>
+            <label class="setting-row">
+              <span class="setting-label">{t.hideLabels}</span>
+              <button
+                class="toggle-switch"
+                class:active={settings.hideIconLabels}
+                onclick={() => { settings.hideIconLabels = !settings.hideIconLabels; }}
+                role="switch"
+                aria-checked={settings.hideIconLabels}
+              >
+                <span class="toggle-knob"></span>
+              </button>
+            </label>
             <div class="setting-row">
               <span class="setting-label">{t.iconSize}</span>
               <div class="size-picker">

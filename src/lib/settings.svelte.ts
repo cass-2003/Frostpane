@@ -4,11 +4,13 @@ const DEFAULTS = {
   iconSize: 48,
   animationLevel: "full" as "off" | "basic" | "full",
   locale: "en" as "en" | "zh",
+  hideIconLabels: false,
 };
 
 let iconSize = $state(DEFAULTS.iconSize);
 let animationLevel = $state(DEFAULTS.animationLevel);
 let _locale = $state(DEFAULTS.locale);
+let hideIconLabels = $state(DEFAULTS.hideIconLabels);
 
 export const settings = {
   get iconSize() { return iconSize; },
@@ -17,6 +19,8 @@ export const settings = {
   set animationLevel(v: "off" | "basic" | "full") { animationLevel = v; save(); },
   get locale() { return _locale; },
   set locale(v: "en" | "zh") { _locale = v; save(); },
+  get hideIconLabels() { return hideIconLabels; },
+  set hideIconLabels(v: boolean) { hideIconLabels = v; save(); },
 };
 
 // Sets locale without triggering a save (used during init before saved prefs are loaded)
@@ -27,7 +31,7 @@ export function setLocaleInitial(v: "en" | "zh") {
 async function save() {
   try {
     await invoke("save_app_settings", {
-      settings: { icon_size: iconSize, animation_level: animationLevel, locale: _locale },
+      settings: { icon_size: iconSize, animation_level: animationLevel, locale: _locale, hide_icon_labels: hideIconLabels },
     });
   } catch (e) {
     console.error("Failed to save settings:", e);
@@ -36,12 +40,13 @@ async function save() {
 
 export async function loadSettings() {
   try {
-    const s = await invoke<{ icon_size?: number; animation_level?: string; locale?: string }>(
+    const s = await invoke<{ icon_size?: number; animation_level?: string; locale?: string; hide_icon_labels?: boolean }>(
       "load_app_settings"
     );
     if (s.icon_size) iconSize = s.icon_size;
     if (s.animation_level) animationLevel = s.animation_level as typeof animationLevel;
     if (s.locale === "en" || s.locale === "zh") _locale = s.locale;
+    if (typeof s.hide_icon_labels === "boolean") hideIconLabels = s.hide_icon_labels;
   } catch {
     // First run, no settings file yet
   }
