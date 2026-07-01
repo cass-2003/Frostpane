@@ -385,7 +385,7 @@
       case "toggle_view":
         fences = fences.map(f =>
           f.id === fenceId
-            ? { ...f, view_mode: (f.view_mode === "list" ? "grid" : "list") }
+            ? { ...f, viewMode: (f.viewMode === "list" ? "grid" : "list") }
             : f
         );
         saveFences();
@@ -755,7 +755,7 @@
   x={fenceMenuX}
   y={fenceMenuY}
   fenceId={fenceMenuTargetId}
-  viewMode={fences.find(f => f.id === fenceMenuTargetId)?.view_mode ?? "grid"}
+  viewMode={fences.find(f => f.id === fenceMenuTargetId)?.viewMode ?? "grid"}
   onclose={() => (fenceMenuVisible = false)}
   onaction={handleFenceMenuAction}
 />
@@ -787,6 +787,14 @@
   onclose={() => (sceneManagerVisible = false)}
   onsave={saveAll}
   onload={handleSceneLoad}
+/>
+
+<!-- Archive confirmation dialog -->
+<ArchiveDialog
+  bind:visible={archiveDialogVisible}
+  preview={archivePreview}
+  onconfirm={handleArchiveConfirm}
+  oncancel={() => { archiveDialogVisible = false; archivePreview = null; archiveTargetFenceId = ""; }}
 />
 
 <style>
