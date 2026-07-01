@@ -6,6 +6,7 @@ use std::path::PathBuf;
 pub struct AppSettings {
     pub icon_size: Option<i32>,
     pub animation_level: Option<String>,
+    pub locale: Option<String>,
 }
 
 fn settings_file() -> PathBuf {
@@ -34,6 +35,7 @@ pub fn load_app_settings() -> Result<AppSettings, String> {
         return Ok(AppSettings {
             icon_size: None,
             animation_level: None,
+            locale: None,
         });
     }
     let json = fs::read_to_string(&path).map_err(|e| format!("Read error: {}", e))?;

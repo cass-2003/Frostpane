@@ -2,6 +2,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import { onMount } from "svelte";
   import { settings, loadSettings } from "../lib/settings.svelte";
+  import { t } from "../lib/i18n.svelte";
 
   interface Props {
     visible: boolean;
@@ -14,11 +15,11 @@
   let loading = $state(true);
 
   const ICON_SIZES = [32, 48, 64, 96];
-  const ANIM_LEVELS: Array<{ value: "off" | "basic" | "full"; label: string }> = [
-    { value: "off", label: "Off" },
-    { value: "basic", label: "Basic" },
-    { value: "full", label: "Full" },
-  ];
+  const ANIM_LEVELS = $derived([
+    { value: "off" as const, label: t.animOff },
+    { value: "basic" as const, label: t.animBasic },
+    { value: "full" as const, label: t.animFull },
+  ]);
 
   onMount(async () => {
     try {
@@ -62,7 +63,7 @@
   <div class="settings-backdrop" onclick={handleBackdrop}>
     <div class="settings-panel" role="dialog" aria-label="Settings">
       <div class="settings-header">
-        <h2>Settings</h2>
+        <h2>{t.settingsTitle}</h2>
         <button class="close-btn" onclick={onclose} title="Close">✕</button>
       </div>
 
@@ -71,9 +72,9 @@
           <div class="loading">Loading...</div>
         {:else}
           <section class="settings-section">
-            <h3>General</h3>
+            <h3>{t.general}</h3>
             <label class="setting-row">
-              <span class="setting-label">Launch at startup</span>
+              <span class="setting-label">{t.launchAtStartup}</span>
               <button
                 class="toggle-switch"
                 class:active={autostart}
@@ -84,12 +85,27 @@
                 <span class="toggle-knob"></span>
               </button>
             </label>
+            <div class="setting-row">
+              <span class="setting-label">{t.language}</span>
+              <div class="size-picker">
+                <button
+                  class="size-btn"
+                  class:active={settings.locale === "en"}
+                  onclick={() => { settings.locale = "en"; }}
+                >English</button>
+                <button
+                  class="size-btn"
+                  class:active={settings.locale === "zh"}
+                  onclick={() => { settings.locale = "zh"; }}
+                >中文</button>
+              </div>
+            </div>
           </section>
 
           <section class="settings-section">
-            <h3>Appearance</h3>
+            <h3>{t.appearanceSection}</h3>
             <div class="setting-row">
-              <span class="setting-label">Icon size</span>
+              <span class="setting-label">{t.iconSize}</span>
               <div class="size-picker">
                 {#each ICON_SIZES as size}
                   <button
@@ -103,7 +119,7 @@
               </div>
             </div>
             <div class="setting-row">
-              <span class="setting-label">Animations</span>
+              <span class="setting-label">{t.animations}</span>
               <div class="size-picker">
                 {#each ANIM_LEVELS as lvl}
                   <button
@@ -119,10 +135,10 @@
           </section>
 
           <section class="settings-section">
-            <h3>About</h3>
+            <h3>{t.about}</h3>
             <div class="about-info">
               <p><strong>Frostpane</strong> v0.1.0</p>
-              <p class="dim">A smarter Windows desktop organizer</p>
+              <p class="dim">{t.aboutDesc}</p>
               <p class="dim">Apache-2.0 License</p>
             </div>
           </section>

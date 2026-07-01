@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { t } from "../lib/i18n.svelte";
+
   interface MenuItem {
     id: string;
     label: string;
@@ -21,18 +23,19 @@
   let adjustedY = $state(0);
   let activeIndex = $state(-1);
 
-  const items: MenuItem[] = [
-    { id: "new_fence", label: "New Fence" },
+  const items: MenuItem[] = $derived([
+    { id: "new_fence", label: t.newFence },
     { id: "sep1", label: "", separator: true },
-    { id: "show_all_fences", label: "Show All Fences" },
-    { id: "hide_all_fences", label: "Hide All Fences" },
+    { id: "show_all_fences", label: t.showAllFences },
+    { id: "hide_all_fences", label: t.hideAllFences },
     { id: "sep2", label: "", separator: true },
-    { id: "sort_by_name", label: "Sort Icons by Name" },
+    { id: "sort_by_name", label: t.sortByName },
     { id: "sep3", label: "", separator: true },
-    { id: "settings", label: "Settings..." },
-  ];
+    { id: "scenes", label: "Scenes..." },
+    { id: "settings", label: t.settings },
+  ]);
 
-  const actionItems = items.filter((m) => !m.separator);
+  const actionItems = $derived(items.filter((m) => !m.separator));
 
   $effect(() => {
     if (visible && menuEl) {

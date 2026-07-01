@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { t } from "../lib/i18n.svelte";
+
   interface Props {
     visible: boolean;
     x: number;
@@ -56,22 +58,22 @@
       role="menu"
     >
       <button class="menu-item" role="menuitem" onclick={() => act("rename")}>
-        <span class="item-label">Rename</span>
+        <span class="item-label">{t.rename}</span>
       </button>
       <div class="menu-separator"></div>
       <button class="menu-item" role="menuitem" onclick={() => act("sort_name")}>
-        <span class="item-label">Sort by Name</span>
+        <span class="item-label">{t.sortName}</span>
       </button>
       <button class="menu-item" role="menuitem" onclick={() => act("sort_type")}>
-        <span class="item-label">Sort by Type</span>
+        <span class="item-label">{t.sortType}</span>
       </button>
       <div class="menu-separator"></div>
       <button class="menu-item" role="menuitem" onclick={() => act("appearance")}>
-        <span class="item-label">Appearance...</span>
+        <span class="item-label">{t.appearance}</span>
       </button>
       <div class="menu-separator"></div>
       <button class="menu-item danger" role="menuitem" onclick={() => act("delete")}>
-        <span class="item-label">Delete Fence</span>
+        <span class="item-label">{t.deleteFence}</span>
       </button>
     </div>
   </div>
