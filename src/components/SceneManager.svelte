@@ -1,5 +1,6 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
+  import { t } from "../lib/i18n.svelte";
 
   interface SceneProfile {
     id: string;
@@ -93,7 +94,7 @@
   <div class="scene-backdrop" onclick={handleBackdrop}>
     <div class="scene-panel" role="dialog" aria-label="Scene Manager">
       <div class="scene-header">
-        <h2>Scenes</h2>
+        <h2>{t.scenesTitle}</h2>
         <button class="close-btn" onclick={onclose} title="Close">✕</button>
       </div>
 
@@ -103,11 +104,11 @@
             class="scene-input"
             type="text"
             bind:value={newName}
-            placeholder="Scene name..."
+            placeholder={t.sceneName}
             onkeydown={(e) => { if (e.key === "Enter") saveCurrentAsScene(); }}
           />
           <button class="save-btn" onclick={saveCurrentAsScene} disabled={!newName.trim()}>
-            Save Current
+            {t.saveScene}
           </button>
         </div>
 
@@ -115,7 +116,7 @@
           {#if loading}
             <div class="empty">Loading...</div>
           {:else if scenes.length === 0}
-            <div class="empty">No saved scenes</div>
+            <div class="empty">{t.noScenes}</div>
           {:else}
             {#each scenes as scene (scene.id)}
               <div class="scene-item">

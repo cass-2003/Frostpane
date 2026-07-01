@@ -1,6 +1,6 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
-  import { onMount } from "svelte";
+  import { t } from "../lib/i18n.svelte";
 
   interface QuickMenuItem {
     id: string;
@@ -31,19 +31,22 @@
     ondeleted,
   }: Props = $props();
 
-  let menuItems = $state<QuickMenuItem[]>([]);
+  let menuItems = $derived<QuickMenuItem[]>([
+    { id: "open", label: t.ctxOpen, separator: false, shortcut: "" },
+    { id: "run_as_admin", label: t.ctxRunAsAdmin, separator: false, shortcut: "" },
+    { id: "open_location", label: t.ctxOpenLocation, separator: false, shortcut: "" },
+    { id: "sep1", label: "", separator: true, shortcut: "" },
+    { id: "rename", label: t.ctxRename, separator: false, shortcut: "F2" },
+    { id: "delete", label: t.ctxDelete, separator: false, shortcut: "Del" },
+    { id: "copy_path", label: t.ctxCopyPath, separator: false, shortcut: "" },
+    { id: "sep2", label: "", separator: true, shortcut: "" },
+    { id: "more_actions", label: t.ctxMoreActions, separator: false, shortcut: "" },
+  ]);
+
   let menuEl: HTMLDivElement | undefined = $state();
   let adjustedX = $state(0);
   let adjustedY = $state(0);
   let activeIndex = $state(-1);
-
-  onMount(async () => {
-    try {
-      menuItems = await invoke<QuickMenuItem[]>("get_quick_menu_items");
-    } catch (e) {
-      console.error("Failed to load menu items:", e);
-    }
-  });
 
   $effect(() => {
     if (visible && menuEl) {
