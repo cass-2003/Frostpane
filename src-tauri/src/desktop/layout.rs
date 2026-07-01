@@ -23,6 +23,13 @@ pub struct FenceStyle {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct FenceTab {
+    pub id: String,
+    pub name: String,
+    pub icon_paths: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FenceLayout {
     pub id: String,
     pub title: String,
@@ -39,6 +46,10 @@ pub struct FenceLayout {
     pub style: Option<FenceStyle>,
     #[serde(rename = "portalPath", skip_serializing_if = "Option::is_none", default)]
     pub portal_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub tabs: Option<Vec<FenceTab>>,
+    #[serde(rename = "activeTab", skip_serializing_if = "Option::is_none", default)]
+    pub active_tab: Option<String>,
 }
 
 fn config_dir() -> PathBuf {
@@ -161,6 +172,40 @@ pub fn delete_scene(id: String) -> Result<(), String> {
         fs::remove_file(&path).map_err(|e| format!("Delete error: {}", e))?;
     }
     Ok(())
+}
+
+// ── Pages (multi-page desktop layout) ──
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PageLayout {
+    pub fences: Vec<FenceLayout>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub icon_positions: Option<Vec<IconPosition>>,
+}
+
+fn pages_file() -> PathBuf {
+    config_dir().join("pages.json")
+}
+
+#[tauri::command]
+pub fn save_pages(pages: Vec<PageLayout>) -> Result<(), String> {
+    let path = pages_file();
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("Failed to create dir: {}", e))?;
+    }
+    let json =
+        serde_json::to_string_pretty(&pages).map_err(|e| format!("Serialize error: {}", e))?;
+    fs::write(&path, json).map_err(|e| format!("Write error: {}", e))
+}
+
+#[tauri::command]
+pub fn load_pages() -> Result<Vec<PageLayout>, String> {
+    let path = pages_file();
+    if !path.exists() {
+        return Ok(vec![]);
+    }
+    let json = fs::read_to_string(&path).map_err(|e| format!("Read error: {}", e))?;
+    serde_json::from_str(&json).map_err(|e| format!("Parse error: {}", e))
 }
 
 // ── Auto-backup ──

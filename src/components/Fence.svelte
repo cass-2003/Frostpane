@@ -20,6 +20,10 @@
     onicondragstart: (e: PointerEvent, icon: DesktopIcon) => void;
     onsave: () => void;
     renameToken?: number;
+    ontabchange: (fenceId: string, tabId: string) => void;
+    ontabadd: (fenceId: string) => void;
+    ontabrename: (fenceId: string, tabId: string, name: string) => void;
+    ontabdelete: (fenceId: string, tabId: string) => void;
   }
 
   let {
@@ -38,6 +42,10 @@
     onicondragstart,
     onsave,
     renameToken,
+    ontabchange,
+    ontabadd,
+    ontabrename,
+    ontabdelete,
   }: Props = $props();
 
   const DRAG_THRESHOLD = 5;
@@ -54,6 +62,17 @@
   let editValue = $state("");
   let titleInput: HTMLInputElement | undefined = $state();
   let showEmojiPicker = $state(false);
+
+  // Tab state
+  let hasTabs = $derived(!!(fence.tabs && fence.tabs.length > 0));
+  let tabBarHeight = $derived(hasTabs && !fence.collapsed ? 28 : 0);
+  let renamingTabId = $state<string | null>(null);
+  let renamingTabValue = $state("");
+  let tabInput: HTMLInputElement | undefined = $state();
+  let tabMenuVisible = $state(false);
+  let tabMenuX = $state(0);
+  let tabMenuY = $state(0);
+  let tabMenuTabId = $state("");
 
   // Drag (move) state
   let moving = $state(false);
@@ -243,10 +262,44 @@
     e.stopPropagation();
     onfencemenu(e, fence.id);
   }
+
+  function openTabMenu(e: MouseEvent, tabId: string) {
+    tabMenuX = e.clientX;
+    tabMenuY = e.clientY;
+    tabMenuTabId = tabId;
+    tabMenuVisible = true;
+  }
+
+  function startTabRename(tabId: string) {
+    tabMenuVisible = false;
+    const tab = fence.tabs?.find(t => t.id === tabId);
+    if (!tab) return;
+    renamingTabId = tabId;
+    renamingTabValue = tab.name;
+    requestAnimationFrame(() => tabInput?.select());
+  }
+
+  function commitTabRename() {
+    const val = renamingTabValue.trim();
+    if (val && renamingTabId) {
+      ontabrename(fence.id, renamingTabId, val);
+    }
+    renamingTabId = null;
+  }
+
+  function onTabRenameKeydown(e: KeyboardEvent) {
+    if (e.key === "Enter") { e.preventDefault(); commitTabRename(); }
+    else if (e.key === "Escape") { renamingTabId = null; }
+  }
+
+  function handleTabDelete(tabId: string) {
+    tabMenuVisible = false;
+    ontabdelete(fence.id, tabId);
+  }
 </script>
 
 <svelte:window
-  onclick={() => { showEmojiPicker = false; }}
+  onclick={() => { showEmojiPicker = false; tabMenuVisible = false; }}
 />
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -311,6 +364,54 @@
     </div>
   {/if}
 
+  <!-- Tab bar (only when fence has tabs and is not collapsed) -->
+  {#if hasTabs && !fence.collapsed}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="tab-bar" onpointerdown={(e) => e.stopPropagation()}>
+      {#each fence.tabs! as tab (tab.id)}
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div
+          class="tab-pill"
+          class:active={fence.activeTab === tab.id}
+        >
+          {#if renamingTabId === tab.id}
+            <input
+              class="tab-rename-input"
+              type="text"
+              bind:this={tabInput}
+              bind:value={renamingTabValue}
+              onblur={commitTabRename}
+              onkeydown={onTabRenameKeydown}
+              onclick={(e) => e.stopPropagation()}
+              onpointerdown={(e) => e.stopPropagation()}
+            />
+          {:else}
+            <button
+              class="tab-pill-btn"
+              class:active={fence.activeTab === tab.id}
+              onclick={() => ontabchange(fence.id, tab.id)}
+              oncontextmenu={(e) => { e.preventDefault(); e.stopPropagation(); openTabMenu(e, tab.id); }}
+            >{tab.name}</button>
+          {/if}
+        </div>
+      {/each}
+      <button class="tab-add-btn" onclick={() => ontabadd(fence.id)} title={t.addTab}>+</button>
+    </div>
+  {/if}
+
+  <!-- Tab context menu -->
+  {#if tabMenuVisible}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+      class="tab-ctx-menu"
+      style="position:fixed; left:{tabMenuX}px; top:{tabMenuY}px"
+      onpointerdown={(e) => e.stopPropagation()}
+    >
+      <button class="tab-ctx-item" onclick={() => startTabRename(tabMenuTabId)}>{t.renameTab}</button>
+      <button class="tab-ctx-item danger" onclick={() => handleTabDelete(tabMenuTabId)}>{t.deleteTab}</button>
+    </div>
+  {/if}
+
   <!-- Portal path subtitle -->
   {#if isPortal && !fence.collapsed}
     <div class="portal-path-bar">
@@ -322,7 +423,7 @@
   <!-- Body -->
   <div
     class="fence-body"
-    style="height:{fence.collapsed ? 0 : fence.height - (isPortal ? 60 : 38)}px"
+    style="height:{fence.collapsed ? 0 : fence.height - (isPortal ? 60 : 38) - tabBarHeight}px"
   >
     {#if !fence.collapsed}
       {#if isPortal}
@@ -826,5 +927,130 @@
     height: 100%;
     color: var(--text-dim);
     font-size: 12px;
+  }
+
+  .tab-bar {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 28px;
+    padding: 3px 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.1);
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-shrink: 0;
+  }
+
+  .tab-bar::-webkit-scrollbar {
+    height: 2px;
+  }
+
+  .tab-bar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 1px;
+  }
+
+  .tab-pill {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .tab-pill-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    color: var(--text-dim);
+    font-size: 11px;
+    padding: 1px 8px;
+    height: 20px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.12s, color 0.12s;
+    font-family: inherit;
+  }
+
+  .tab-pill-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--text);
+  }
+
+  .tab-pill-btn.active {
+    background: var(--accent, rgba(91, 141, 239, 0.35));
+    border-color: rgba(91, 141, 239, 0.5);
+    color: var(--text);
+  }
+
+  .tab-rename-input {
+    font-size: 11px;
+    font-family: inherit;
+    color: var(--text);
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    padding: 0 5px;
+    height: 20px;
+    outline: none;
+    width: 80px;
+  }
+
+  .tab-add-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 14px;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    transition: background 0.12s, color 0.12s;
+    padding: 0;
+    margin-left: 2px;
+  }
+
+  .tab-add-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--text);
+  }
+
+  .tab-ctx-menu {
+    z-index: 9999;
+    min-width: 140px;
+    padding: 4px 0;
+    background: rgba(20, 24, 38, 0.96);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  }
+
+  .tab-ctx-item {
+    display: block;
+    width: 100%;
+    padding: 6px 12px;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    font-size: 12px;
+    text-align: left;
+    cursor: default;
+    transition: background 0.1s;
+    font-family: inherit;
+  }
+
+  .tab-ctx-item:hover {
+    background: rgba(91, 141, 239, 0.18);
+  }
+
+  .tab-ctx-item.danger {
+    color: #e06060;
+  }
+
+  .tab-ctx-item.danger:hover {
+    background: rgba(224, 80, 80, 0.15);
   }
 </style>

@@ -4,7 +4,7 @@ type Locale = "en" | "zh";
 
 type Translations = {
   loading: string;
-  statusBar: (fences: number, icons: number) => string;
+  statusBar: (fences: number, icons: number, page?: number, totalPages?: number) => string;
   newFence: string;
   showAllFences: string;
   hideAllFences: string;
@@ -86,11 +86,23 @@ type Translations = {
   enterFolderPath: string;
   refreshPortal: string;
   openInExplorer: string;
+  // Tabs
+  addTab: string;
+  renameTab: string;
+  deleteTab: string;
+  newTab: string;
+  // Pages
+  nextPage: string;
+  prevPage: string;
+  addPage: string;
+  deletePage: string;
+  pages: string;
 };
 
 const en: Translations = {
   loading: "Frostpane loading...",
-  statusBar: (fences, icons) => `❄ Frostpane · ${fences} fences · ${icons} icons`,
+  statusBar: (fences, icons, page, totalPages) =>
+    `❄ Frostpane${totalPages && totalPages > 1 ? ` · Page ${page}/${totalPages}` : ""} · ${fences} fences · ${icons} icons`,
   newFence: "New Fence",
   showAllFences: "Show All Fences",
   hideAllFences: "Hide All Fences",
@@ -167,11 +179,21 @@ const en: Translations = {
   enterFolderPath: "Enter folder path...",
   refreshPortal: "Refresh",
   openInExplorer: "Open in Explorer",
+  addTab: "Add Tab",
+  renameTab: "Rename Tab",
+  deleteTab: "Delete Tab",
+  newTab: "New Tab",
+  nextPage: "Next Page",
+  prevPage: "Previous Page",
+  addPage: "Add Page",
+  deletePage: "Delete Page",
+  pages: "Pages",
 };
 
 const zh: Translations = {
   loading: "Frostpane 加载中...",
-  statusBar: (fences, icons) => `❄ 方寸 · ${fences} 个分区 · ${icons} 个图标`,
+  statusBar: (fences, icons, page, totalPages) =>
+    `❄ 方寸${totalPages && totalPages > 1 ? ` · 第 ${page}/${totalPages} 页` : ""} · ${fences} 个分区 · ${icons} 个图标`,
   newFence: "新建分区",
   showAllFences: "显示所有分区",
   hideAllFences: "隐藏所有分区",
@@ -248,6 +270,15 @@ const zh: Translations = {
   enterFolderPath: "输入文件夹路径...",
   refreshPortal: "刷新",
   openInExplorer: "在资源管理器中打开",
+  addTab: "添加标签页",
+  renameTab: "重命名标签页",
+  deleteTab: "删除标签页",
+  newTab: "新标签页",
+  nextPage: "下一页",
+  prevPage: "上一页",
+  addPage: "添加页面",
+  deletePage: "删除页面",
+  pages: "页面",
 };
 
 const LOCALES: Record<Locale, Translations> = { en, zh };

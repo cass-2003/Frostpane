@@ -16,6 +16,12 @@ export interface FenceStyle {
   borderRadius?: number; // px
 }
 
+export interface FenceTab {
+  id: string;
+  name: string;
+  icon_paths: string[];
+}
+
 export interface FenceData {
   id: string;
   title: string;
@@ -29,6 +35,8 @@ export interface FenceData {
   viewMode?: "grid" | "list";
   style?: FenceStyle;
   portalPath?: string | null;
+  tabs?: FenceTab[];
+  activeTab?: string;
 }
 
 export interface PortalItem {
@@ -38,6 +46,11 @@ export interface PortalItem {
   extension: string;
   iconData: string;
   size: number;
+}
+
+export interface PageData {
+  fences: FenceData[];
+  iconPositions?: { path: string; x: number; y: number }[];
 }
 
 export interface AppSettings {
