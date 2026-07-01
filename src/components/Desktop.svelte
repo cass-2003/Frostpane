@@ -201,6 +201,20 @@
 
   // ── Icon interactions within fences ──
 
+  function handleFenceIconDragStart(e: PointerEvent, icon: DesktopIcon) {
+    icons = icons.map((ic) =>
+      ic.path === icon.path
+        ? { ...ic, fence_id: null, x: e.clientX - 40, y: e.clientY - 24 }
+        : ic
+    );
+    dragOffsetX = 40;
+    dragOffsetY = 24;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    didDrag = true;
+    draggingIcon = icon.path;
+  }
+
   function handleFenceIconClick(_icon: DesktopIcon) {
     // Selection logic can be added later
   }
@@ -380,6 +394,7 @@
         oniconclick={handleFenceIconClick}
         onicondblclick={handleFenceIconDblClick}
         oniconcontextmenu={handleFenceIconContext}
+        onicondragstart={handleFenceIconDragStart}
       />
     {/each}
 

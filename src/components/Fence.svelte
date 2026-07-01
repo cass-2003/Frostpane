@@ -14,6 +14,7 @@
     oniconclick: (icon: DesktopIcon) => void;
     onicondblclick: (icon: DesktopIcon) => void;
     oniconcontextmenu: (e: MouseEvent, icon: DesktopIcon) => void;
+    onicondragstart: (e: PointerEvent, icon: DesktopIcon) => void;
   }
 
   let {
@@ -29,6 +30,7 @@
     oniconclick,
     onicondblclick,
     oniconcontextmenu,
+    onicondragstart,
   }: Props = $props();
 
   const DRAG_THRESHOLD = 5;
@@ -150,6 +152,40 @@
     showEmojiPicker = !showEmojiPicker;
   }
 
+  // Icon drag-out from fence
+  let iconDragPath = $state<string | null>(null);
+  let iconDragStartX = 0;
+  let iconDragStartY = 0;
+  let iconDidDrag = false;
+
+  function onIconPointerDown(e: PointerEvent, icon: DesktopIcon) {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    iconDragStartX = e.clientX;
+    iconDragStartY = e.clientY;
+    iconDidDrag = false;
+    iconDragPath = icon.path;
+  }
+
+  function onIconPointerMove(e: PointerEvent) {
+    if (!iconDragPath) return;
+    const dx = e.clientX - iconDragStartX;
+    const dy = e.clientY - iconDragStartY;
+    if (!iconDidDrag && Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD) {
+      iconDidDrag = true;
+      const icon = icons.find((ic) => ic.path === iconDragPath);
+      if (icon) {
+        onicondragstart(e, icon);
+      }
+      iconDragPath = null;
+    }
+  }
+
+  function onIconPointerUp(_e: PointerEvent) {
+    iconDragPath = null;
+  }
+
   function handleHeaderContext(e: MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
@@ -234,8 +270,11 @@
           <button
             class="fence-icon"
             title={icon.name}
-            onclick={() => oniconclick(icon)}
-            ondblclick={() => onicondblclick(icon)}
+            onpointerdown={(e) => onIconPointerDown(e, icon)}
+            onpointermove={onIconPointerMove}
+            onpointerup={onIconPointerUp}
+            onclick={() => { if (!iconDidDrag) oniconclick(icon); }}
+            ondblclick={() => { if (!iconDidDrag) onicondblclick(icon); }}
             oncontextmenu={(e) => oniconcontextmenu(e, icon)}
           >
             {#if icon.icon_data}
