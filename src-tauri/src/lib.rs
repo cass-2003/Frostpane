@@ -5,6 +5,7 @@ use desktop::context_menu;
 use desktop::icons::{self, DesktopIcon};
 use desktop::layout;
 use desktop::overlay;
+use desktop::settings;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
@@ -214,6 +215,8 @@ pub fn run() {
             layout::load_fence_layout,
             autostart::is_autostart_enabled,
             autostart::set_autostart,
+            settings::save_app_settings,
+            settings::load_app_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

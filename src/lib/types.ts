@@ -20,3 +20,9 @@ export interface FenceData {
   collapsed: boolean;
   icon_paths: string[];
 }
+
+export interface AppSettings {
+  iconSize: number; // 32 | 48 | 64 | 96
+  autostart: boolean;
+  animationLevel: "off" | "basic" | "full";
+}
